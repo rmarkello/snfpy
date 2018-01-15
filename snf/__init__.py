@@ -1,5 +1,7 @@
-__all__ = ['snf']
+__all__ = ['compute', 'plotting', 'matlab', 'R']
 
-from snf.snf import (make_affinity, affinity_matrix, SNF, snf_nmi,
-                     get_n_clusters, spectral_labels, silhouette_samples,
-                     silhouette_score, affinity_zscore)
+from snf.info import (__version__)
+from snf import (matlab, R)
+from snf.compute import (make_affinity, SNF, snf_nmi,
+                         get_n_clusters, spectral_labels,
+                         silhouette_score, affinity_zscore)

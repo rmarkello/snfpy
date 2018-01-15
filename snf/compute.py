@@ -1,30 +1,19 @@
-# coding: utf-8
-
-"""
-This code has been translated from the Similarity Network Fusion (SNF) toolbox
-found at http://compbio.cs.toronto.edu/SNF/SNF/Software.html, initially
-published in Wang et al., 2014, Nature Methods. See paper for more details on
-the methods. Code is a semi-direct translation of the R/MATLAB toolbox. Primary
-functions have been renamed to be more Pythonic, however wrappers under the
-original names are also avaialable.
-"""
+# -*- coding: utf-8 -*-
 
 import numpy as np
 from scipy.spatial.distance import cdist
 import scipy.stats
-from sklearn.decomposition import PCA
 from sklearn.metrics import normalized_mutual_info_score
-from ..utils import mod_heatmap
 
 
 def make_affinity(arr, K=20, sigma=0.5, metric='sqeuclidean', normalize=True):
     """
-    Makes affinity matrix given samples x features array `arr`
+    Makes affinity matrix given ``arr``
 
     Parameters
     ----------
     arr : (N x M) array_like
-        Data array where N is samples and M is features
+        Data array where ``N`` is samples and ``M`` is features
     K : int, optional
         Number of neighbors to compare similarity against. Default: 20
     sigma : (0,1) float, optional
@@ -121,7 +110,7 @@ def find_dominate_set(W, K=20):
 
 def B0_normalized(W, alpha=1.0):
     """
-    Normalizes `W` so that subjects are always most similar to themselves
+    Normalizes ``W`` so that subjects are always most similar to themselves
 
     Parameters
     ----------
@@ -151,7 +140,7 @@ def B0_normalized(W, alpha=1.0):
 
 def SNF(aff, K=20, t=20, alpha=1.0):
     """
-    Performs Similarity Network Fusion on `aff` matrices
+    Performs Similarity Network Fusion on ``aff`` matrices
 
     Parameters
     ----------
@@ -204,7 +193,7 @@ def SNF(aff, K=20, t=20, alpha=1.0):
 
 def snf_nmi(labels):
     """
-    Calculates normalized mutual information for all combinations of `labels`
+    Calculates normalized mutual information for all combinations of ``labels``
 
     Parameters
     ----------
@@ -214,7 +203,7 @@ def snf_nmi(labels):
     Returns
     -------
     (N x N) np.ndarray
-        NMI score for all combinations of `labels`
+        NMI score for all combinations of ``labels``
     """
 
     nmi = np.empty(shape=(len(labels), len(labels)))
@@ -227,12 +216,12 @@ def snf_nmi(labels):
 
 def get_n_clusters(arr, n_clusters=range(2, 6)):
     """
-    Finds optimal number of clusters in `arr` via eigengap method
+    Finds optimal number of clusters in ``arr`` via eigengap method
 
     Parameters
     ----------
     arr : (N x N) array_like
-        Input array (output from SNF)
+        Input array (output from ``snf.SNF()``)
     n_clusters : array_like
         Numbers of clusters to choose between
 
@@ -251,6 +240,8 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
        wide scale. Nature Methods, 11(3), 333-7.
     """
 
+    from sklearn.decomposition import PCA
+
     eigenvalue = PCA().fit(arr).singular_values_[:-1]
     eigengap = np.abs(np.diff(eigenvalue))
     eigengap = eigengap * (1 - eigenvalue[:-1]) / (1 - eigenvalue[1:])
@@ -261,7 +252,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
 
 def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
     """
-    Calculates NMI of each feature in `inputs` with `W`
+    Calculates NMI of each feature in ``inputs`` with ``W``
 
     Parameters
     ----------
@@ -277,7 +268,7 @@ def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
         Hyperparameter normalization factor for scaling. Default: 0.5
     n_clusters : int, optional
         Number of desired clusters. Default: determined by eigengap (see
-        `ppmi.snf.get_n_clusters()`)
+        ``snf.get_n_clusters()``)
 
     Returns
     -------
@@ -288,7 +279,6 @@ def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
     if n_clusters is None:
         n_clusters = get_n_clusters(W)[0]
     snf_labels = spectral_labels(W, n_clusters)
-
     nmi = [np.empty(shape=(d.shape[-1])) for d, m in inputs]
     for ndtype, (dtype, metric) in enumerate(inputs):
         for nfeature, feature in enumerate(np.asarray(dtype).T):
@@ -303,18 +293,18 @@ def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
 
 def spectral_labels(arr, n_clusters, affinity='precomputed'):
     """
-    Performs spectral clustering on `arr` and returns assigned cluster labels
+    Performs spectral clustering on ``arr`` and returns assigned cluster labels
 
     Parameters
     ----------
     arr : {(N x N), (N x M)} array_like
-        Array to be clustered. If N x M, must set `affinity`.
+        Array to be clustered. If N x M, must set ``affinity``.
     n_clusters : int
-        Number of desired clusters
+        Number of desired clusters.
     affinity : str, optional
-        Affinity metric. If `arr` is (N x N), must be 'precomputed'. Otherwise,
-        must be one of ['nearest_neighbors', 'rbf', ‘sigmoid’, ‘polynomial’,
-        ‘poly’, ‘linear’, ‘cosine’]. Default: 'precomputed'
+        Affinity metric. If ``arr`` is N x N, must be 'precomputed' (default).
+        Otherwise, must be one of ['nearest_neighbors', 'rbf', 'sigmoid',
+        'polynomial', 'poly', 'linear', 'cosine'].
 
     Returns
     -------
@@ -370,8 +360,8 @@ def silhouette_samples(arr, labels):
 
     Note
     ----
-    Code is *lightly* modified from the `sklearn` implementation of silhouette
-    samples (`sklearn.metrics.silhouette_samples`)
+    Code is *lightly* modified from the ``sklearn`` implementation. See:
+    ``sklearn.metrics.silhouette_samples``
     """
 
     from sklearn.preprocessing import LabelEncoder
@@ -470,8 +460,8 @@ def silhouette_score(arr, labels):
 
     Note
     ----
-    Code is *lightly* modified from the `sklearn` implementation of silhouette
-    scores (`sklearn.metrics.silhouette_score`)
+    Code is *lightly* modified from the ``sklearn`` implementation. See:
+    ``sklearn.metrics.silhouette_score``
     """
 
     return np.mean(silhouette_samples(arr, labels))
@@ -500,12 +490,10 @@ def affinity_zscore(arr, labels, n_perms=1000, seed=None):
 
     if seed is not None:
         np.random.seed(seed)
-
     dist = np.empty(shape=(n_perms,))
     for perm in range(n_perms):
         new_labels = np.random.permutation(labels)
         dist[perm] = silhouette_score(arr, new_labels)
-
     true_aff_score = silhouette_score(arr, labels)
     z_aff = (true_aff_score - dist.mean()) / dist.std()
 
@@ -514,12 +502,12 @@ def affinity_zscore(arr, labels, n_perms=1000, seed=None):
 
 def dist2(arr1, arr2):
     """
-    Wrapper of cdist with squared euclidean for SNF toolbox compatibility
+    Wrapper of ``cdist`` with squared euclidean for ``SNFtool`` compatibility
 
     Parameters
     ----------
     arr1, arr2 : (N x M) array_like
-        Input matrices. Can differ on N but M must be the same.
+        Input matrices. Can differ on ``N`` but ``M`` must be the same.
 
     Returns
     -------
@@ -530,20 +518,19 @@ def dist2(arr1, arr2):
     return cdist(arr1, arr2, metric='sqeuclidean')
 
 
-# SNF toolbox (MATLAB / R) compatible wrappers
-affinityMatrix = affinity_matrix  # MATLAB / R
-B0normalized = B0_normalized  # MATLAB
-Cal_NMI = normalized_mutual_info_score  # MATLAB
-calNMI = normalized_mutual_info_score  # R
-Concordance_Network_NMI = snf_nmi  # MATLAB
-concordanceNetworkMNI = snf_nmi  # R
-Estimate_Number_of_Clusters_given_graph = get_n_clusters  # MATLAB
-estimateNumberOfClustersGivenGraph = get_n_clusters  # R
-FindDominateSet = find_dominate_set  # MATLAB
-Standard_Normalization = scipy.stats.zscore  # MATLAB
-standardNormalization = scipy.stats.zscore  # R
-SpectralClustering = spectral_labels  # MATLAB
-spectralClustering = spectral_labels  # R
-rankFeaturesByNMI = rank_feature_by_nmi  # R
-displayClustersWithHeatmap = mod_heatmap  # R
-displayClusters = mod_heatmap  # MATLAB
+def chi_square_distance(arr1, arr2):
+    """
+    Computes chi-squared distance between ``arr1`` and ``arr2``
+
+    Parameters
+    ----------
+    arr1, arr2 : (N x M) array_like
+        Input matrices. Can differ on ``N`` but ``M`` must be the same.
+
+    Returns
+    -------
+    (N x N) np.ndarray
+        Chi-squared distance matrix
+    """
+
+    raise NotImplementedError
