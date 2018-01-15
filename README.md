@@ -4,6 +4,18 @@
 
 This code is a translation of the original source code and is released as a derivative under the [LGPLv3](https://github.com/rmarkello/SNFpy/blob/master/LICENSE). You can learn more about the original code by reading the original paper ([Wang et al., 2014, Nature Methods](https://www.ncbi.nlm.nih.gov/pubmed/24464287)).
 
+## Status
+[![Build Status](https://travis-ci.org/rmarkello/SNFpy.svg?branch=master)](https://travis-ci.org/rmarkello/SNFpy)
+[![codecov](https://codecov.io/gh/rmarkello/SNFpy/branch/master/graph/badge.svg)](https://codecov.io/gh/rmarkello/SNFpy)
+
+## Requirements
+Python 3.5 or higher
+
+See [`requirements.txt`](https://github.com/rmarkello/SNFpy/blob/master/requirements.txt) for more info on required modules.
+
+## Installation
+Using `git clone` and `python setup.py install` should do the trick.
+
 ## Usage
 ```python
 >>> import snf
