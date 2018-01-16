@@ -5,14 +5,14 @@ import numpy as np
 
 def mod_heatmap(arr, labels, **kwargs):
     """
-    Plots ``arr`` heatmap with border around ``labels``
+    Plots `arr` heatmap with border around `labels`
 
     Parameters
     ----------
     arr : (N x N) array_like
         Adjacency matrix to be plotted as heatmap
     labels : (N,) array_like
-        Group assignments for nodes in ``arr``
+        Group assignments for nodes in `arr`
     **kwargs
         Keyword arguments for `seaborn.heatmap()`
 

@@ -6,23 +6,27 @@ import scipy.stats
 from sklearn.metrics import normalized_mutual_info_score
 
 
-def make_affinity(arr, K=20, sigma=0.5, metric='sqeuclidean', normalize=True):
+def make_affinity(arr, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
     """
-    Makes affinity matrix given ``arr``
+    Constructs affinity (i.e., similarity) matrix given `arr`
+
+    Performs columnwise normalization on `arr`, computes distance matrix of
+    based on provided `metric`, and then constructs affinity matrix.
 
     Parameters
     ----------
     arr : (N x M) array_like
-        Data array where ``N`` is samples and ``M`` is features
-    K : int, optional
-        Number of neighbors to compare similarity against. Default: 20
-    sigma : (0,1) float, optional
+        Raw data array, where `N` is samples and `M` is features
+    K : (0, N) int, optional
+        Hyperparameter normalization factor for scaling. Default: 20
+    mu : (0,1) float, optional
         Hyperparameter normalization factor for scaling. Default: 0.5
     metric : str, optional
-        Distance metric to compute. Default: 'sqeuclidean'
+        Distance metric to compute. Must be one of available metrics in
+        `scipy.spatial.distance.cdist`. Default: 'sqeuclidean'
     normalize : bool, optional
-        Whether to normalize (zscore) the data before constructing the affinity
-        matrix. Each feature is separately normalized. Default: True
+        Whether to normalize (i.e., zscore) the data before constructing the
+        affinity matrix. Each feature is normalized separately. Default: True
 
     Returns
     -------
@@ -31,24 +35,28 @@ def make_affinity(arr, K=20, sigma=0.5, metric='sqeuclidean', normalize=True):
     """
 
     if normalize:
-        arr = scipy.stats.zscore(arr, ddof=1)
+        arr = np.nan_to_num(scipy.stats.zscore(arr, ddof=1))
     similarity = cdist(arr, arr, metric=metric)
-    affinity = affinity_matrix(similarity, K=K, sigma=sigma)
+    affinity = affinity_matrix(similarity, K=K, mu=mu)
 
     return affinity
 
 
-def affinity_matrix(dist, K=20, sigma=0.5):
+def affinity_matrix(dist, K=20, mu=0.5):
     """
-    Calculates affinity matrix given a distance matrix
+    Calculates affinity matrix given distance matrix `dist`
+
+    Uses a scaled exponential similarity kernel to determine the weight of each
+    edge based on `dist`. Optional hyperparameters `K` and `mu`
+    determine the extent of the scaling (see `Notes`).
 
     Parameters
     ----------
     dist : (N x N) array_like
         Distance matrix
-    K : int, optional
-        Number of neighbors to compare similarity against. Default: 20
-    sigma : (0,1) float, optional
+    K : (0, N) int, optional
+        Hyperparameter normalization factor for scaling. Default: 20
+    mu : (0,1) float, optional
         Hyperparameter normalization factor for scaling. Default: 0.5
 
     Returns
@@ -56,22 +64,32 @@ def affinity_matrix(dist, K=20, sigma=0.5):
     (N x N) np.ndarray
         Affinity matrix
 
-    References
-    ----------
-    .. [1] Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M.,
-       Haibe-Kains, B., & Goldenberg, A. (2014). Similarity Network Fusion: a
-       fast and effective method to aggregate multiple data types on a genome
-       wide scale. Nature Methods, 11(3), 333-7.
+    Notes
+    -----
+    The exponential similarity kernel takes the form
+
+    .. math::
+
+       W(i,j) = exp \\left( -\\frac{\\rho ^2 (x_{i},x_{j})}{\\mu \\varepsilon_{i,j}} \\right)
+
+    where :math:`\\varepsilon _{i,j}` is
+
+    .. math::
+
+       \\varepsilon_{i,j} = \\frac{mean(\\rho(x_{i},N_{i})) + mean(\\rho(x_{j},N_{j})) + \\rho(x_{i},x_{j})}{3}
+
+    and :math:`mean(\\rho(x_{i}, N_{i}))` represents the average value between
+    :math:`x_{i}` and its `K` nearest neighbors.
     """
 
-    dist = np.asarray(dist)
+    dist = np.array(dist)
     dist = (dist + dist.T) / 2
     dist[np.diag_indices_from(dist)] = 0
     T = np.sort(dist, axis=1)
     TT = np.vstack(T[:, 1:K + 1].mean(axis=1) + np.spacing(1))
     sig = (TT + TT.T + dist) / 3
     sig = (sig * (sig > np.spacing(1))) + np.spacing(1)
-    W = scipy.stats.norm.pdf(dist, 0, sigma * sig)
+    W = scipy.stats.norm.pdf(dist, 0, mu * sig)
     W = (W + W.T) / 2
 
     return W
@@ -82,19 +100,12 @@ def find_dominate_set(W, K=20):
     Parameters
     ----------
     W : (N x N) array_like
-    K : int, optional
-        Number of neighbors to compare similarity against. Default: 20
+    K : (0, N) int, optional
+        Hyperparameter normalization factor for scaling. Default: 20
 
     Returns
     -------
-    (N x N) np.ndarray
-
-    References
-    ----------
-    .. [1] Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M.,
-       Haibe-Kains, B., & Goldenberg, A. (2014). Similarity Network Fusion: a
-       fast and effective method to aggregate multiple data types on a genome
-       wide scale. Nature Methods, 11(3), 333-7.
+    newW : (N x N) np.ndarray
     """
 
     m, n = W.shape
@@ -110,7 +121,7 @@ def find_dominate_set(W, K=20):
 
 def B0_normalized(W, alpha=1.0):
     """
-    Normalizes ``W`` so that subjects are always most similar to themselves
+    Normalizes `W` so that subjects are always most similar to themselves
 
     Parameters
     ----------
@@ -121,15 +132,8 @@ def B0_normalized(W, alpha=1.0):
 
     Returns
     -------
-    (N x N) np.ndarray
+    W : (N x N) np.ndarray
         Similarity array
-
-    References
-    ----------
-    .. [1] Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M.,
-       Haibe-Kains, B., & Goldenberg, A. (2014). Similarity Network Fusion: a
-       fast and effective method to aggregate multiple data types on a genome
-       wide scale. Nature Methods, 11(3), 333-7.
     """
 
     W = W + (alpha * np.eye(len(W)))
@@ -140,14 +144,14 @@ def B0_normalized(W, alpha=1.0):
 
 def SNF(aff, K=20, t=20, alpha=1.0):
     """
-    Performs Similarity Network Fusion on ``aff`` matrices
+    Performs Similarity Network Fusion on `aff` matrices
 
     Parameters
     ----------
     aff : list of (N x N) array_like
         Input similarity arrays. All arrays should be square and of equal size.
-    K : int, optional
-        Number of neighbors to compare similarity against. Default: 20
+    K : (0, N) int, optional
+        Hyperparameter normalization factor for scaling. Default: 20
     t : int, optional
         Number of iterations to perform information swapping. Default: 20
     alpha : (0,1) float, optional
@@ -155,15 +159,8 @@ def SNF(aff, K=20, t=20, alpha=1.0):
 
     Returns
     -------
-    (N x N) np.ndarray
-        Similarity network of fused input arrays
-
-    References
-    ----------
-    .. [1] Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M.,
-       Haibe-Kains, B., & Goldenberg, A. (2014). Similarity Network Fusion: a
-       fast and effective method to aggregate multiple data types on a genome
-       wide scale. Nature Methods, 11(3), 333-7.
+    W: (N x N) np.ndarray
+        Fused similarity network of input arrays
     """
 
     m, n = aff[0].shape
@@ -171,7 +168,7 @@ def SNF(aff, K=20, t=20, alpha=1.0):
     Wsum = np.zeros((m, n))
 
     for i in range(len(aff)):
-        aff[i] = aff[i] / np.repeat(aff[i].sum(1)[:, np.newaxis], n, axis=1)
+        aff[i] = aff[i] / aff[i].sum(axis=1)[:, np.newaxis]
         aff[i] = (aff[i] + aff[i].T) / 2
         newW[i] = find_dominate_set(aff[i], round(K))
         Wsum = Wsum + aff[i]
@@ -185,7 +182,7 @@ def SNF(aff, K=20, t=20, alpha=1.0):
             Wsum = Wsum + aff[i]
 
     W = Wsum / len(aff)
-    W = W / np.repeat(W.sum(1)[:, np.newaxis], n, axis=1)
+    W = W / W.sum(axis=1)[:, None]
     W = (W + W.T + np.eye(n)) / 2
 
     return W
@@ -193,7 +190,7 @@ def SNF(aff, K=20, t=20, alpha=1.0):
 
 def snf_nmi(labels):
     """
-    Calculates normalized mutual information for all combinations of ``labels``
+    Calculates normalized mutual information for all combinations of `labels`
 
     Parameters
     ----------
@@ -203,7 +200,7 @@ def snf_nmi(labels):
     Returns
     -------
     (N x N) np.ndarray
-        NMI score for all combinations of ``labels``
+        NMI score for all combinations of `labels`
     """
 
     nmi = np.empty(shape=(len(labels), len(labels)))
@@ -216,12 +213,12 @@ def snf_nmi(labels):
 
 def get_n_clusters(arr, n_clusters=range(2, 6)):
     """
-    Finds optimal number of clusters in ``arr`` via eigengap method
+    Finds optimal number of clusters in `arr` via eigengap method
 
     Parameters
     ----------
     arr : (N x N) array_like
-        Input array (output from ``snf.SNF()``)
+        Input array (output from `snf.SNF()`)
     n_clusters : array_like
         Numbers of clusters to choose between
 
@@ -231,13 +228,6 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
         Optimal number of clusters
     int
         Second best number of clusters
-
-    References
-    ----------
-    .. [1] Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M.,
-       Haibe-Kains, B., & Goldenberg, A. (2014). Similarity Network Fusion: a
-       fast and effective method to aggregate multiple data types on a genome
-       wide scale. Nature Methods, 11(3), 333-7.
     """
 
     from sklearn.decomposition import PCA
@@ -250,9 +240,9 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     return n_clusters[n[0]], n_clusters[n[1]]
 
 
-def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
+def rank_feature_by_nmi(inputs, W, K=20, mu=0.5, n_clusters=None):
     """
-    Calculates NMI of each feature in ``inputs`` with ``W``
+    Calculates NMI of each feature in `inputs` with `W`
 
     Parameters
     ----------
@@ -262,13 +252,13 @@ def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
         'euclidean', 'sqeuclidean')
     W : (N x N) array_like
         Similarity array from SNF
-    K : int, optional
-        Number of neighbors to compare similarity against. Default: 20
-    sigma : (0,1) float, optional
+    K : (0, N) int, optional
+        Hyperparameter normalization factor for scaling. Default: 20
+    mu : (0,1) float, optional
         Hyperparameter normalization factor for scaling. Default: 0.5
     n_clusters : int, optional
         Number of desired clusters. Default: determined by eigengap (see
-        ``snf.get_n_clusters()``)
+        `snf.get_n_clusters()`)
 
     Returns
     -------
@@ -282,7 +272,7 @@ def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
     nmi = [np.empty(shape=(d.shape[-1])) for d, m in inputs]
     for ndtype, (dtype, metric) in enumerate(inputs):
         for nfeature, feature in enumerate(np.asarray(dtype).T):
-            aff = make_affinity(np.vstack(feature), K=K, sigma=sigma,
+            aff = make_affinity(np.vstack(feature), K=K, mu=mu,
                                 metric=metric)
             aff_labels = spectral_labels(aff, n_clusters)
             nmi[ndtype][nfeature] = normalized_mutual_info_score(snf_labels,
@@ -293,16 +283,16 @@ def rank_feature_by_nmi(inputs, W, K=20, sigma=0.5, n_clusters=None):
 
 def spectral_labels(arr, n_clusters, affinity='precomputed'):
     """
-    Performs spectral clustering on ``arr`` and returns assigned cluster labels
+    Performs spectral clustering on `arr` and returns assigned cluster labels
 
     Parameters
     ----------
     arr : {(N x N), (N x M)} array_like
-        Array to be clustered. If N x M, must set ``affinity``.
+        Array to be clustered. If N x M, must set `affinity`.
     n_clusters : int
         Number of desired clusters.
     affinity : str, optional
-        Affinity metric. If ``arr`` is N x N, must be 'precomputed' (default).
+        Affinity metric. If `arr` is N x N, must be 'precomputed' (default).
         Otherwise, must be one of ['nearest_neighbors', 'rbf', 'sigmoid',
         'polynomial', 'poly', 'linear', 'cosine'].
 
@@ -325,9 +315,9 @@ def silhouette_samples(arr, labels):
     Calculates modified silhouette score from affinity matrix
 
     The Silhouette Coefficient is calculated using the mean intra-cluster
-    affinity (``a``) and the mean nearest-cluster affinity (``b``) for each
-    sample. The Silhouette Coefficient for a sample is ``(b - a) / max(a,b)``.
-    To clarify, ``b`` is the distance between a sample and the nearest cluster
+    affinity (`a`) and the mean nearest-cluster affinity (`b`) for each
+    sample. The Silhouette Coefficient for a sample is `(b - a) / max(a,b)`.
+    To clarify, `b` is the distance between a sample and the nearest cluster
     that the sample is not a part of. This corresponds to the cluster with the
     next *highest* affinity (opposite how this metric would be computed for a
     distance matrix).
@@ -360,8 +350,8 @@ def silhouette_samples(arr, labels):
 
     Note
     ----
-    Code is *lightly* modified from the ``sklearn`` implementation. See:
-    ``sklearn.metrics.silhouette_samples``
+    Code is *lightly* modified from the `sklearn` implementation. See:
+    `sklearn.metrics.silhouette_samples`
     """
 
     from sklearn.preprocessing import LabelEncoder
@@ -425,9 +415,9 @@ def silhouette_score(arr, labels):
     Calculates modified silhouette score from affinity matrix
 
     The Silhouette Coefficient is calculated using the mean intra-cluster
-    affinity (``a``) and the mean nearest-cluster affinity (``b``) for each
-    sample. The Silhouette Coefficient for a sample is ``(b - a) / max(a,b)``.
-    To clarify, ``b`` is the distance between a sample and the nearest cluster
+    affinity (`a`) and the mean nearest-cluster affinity (`b`) for each
+    sample. The Silhouette Coefficient for a sample is `(b - a) / max(a,b)`.
+    To clarify, `b` is the distance between a sample and the nearest cluster
     that the sample is not a part of. This corresponds to the cluster with the
     next *highest* affinity (opposite how this metric would be computed for a
     distance matrix).
@@ -460,8 +450,8 @@ def silhouette_score(arr, labels):
 
     Note
     ----
-    Code is *lightly* modified from the ``sklearn`` implementation. See:
-    ``sklearn.metrics.silhouette_score``
+    Code is *lightly* modified from the `sklearn` implementation. See:
+    `sklearn.metrics.silhouette_score`
     """
 
     return np.mean(silhouette_samples(arr, labels))
@@ -500,32 +490,39 @@ def affinity_zscore(arr, labels, n_perms=1000, seed=None):
     return z_aff
 
 
-def dist2(arr1, arr2):
+def dist2(arr1, arr2=None):
     """
-    Wrapper of ``cdist`` with squared euclidean for ``SNFtool`` compatibility
+    Wrapper of `cdist` with squared euclidean as distance metric
+
+    Available for `SNFtool` compatibility; should probably just use
+    `make_affinity()` instead
 
     Parameters
     ----------
     arr1, arr2 : (N x M) array_like
-        Input matrices. Can differ on ``N`` but ``M`` must be the same.
+        Input matrices. Can differ on `N` but `M` must be the same.
 
     Returns
     -------
-    (N x N) np.ndarray
+    dist : (N x N) np.ndarray
         Squared euclidean distance matrix
     """
 
-    return cdist(arr1, arr2, metric='sqeuclidean')
+    if arr2 is None:
+        arr2 = np.array(arr1).copy()
+    dist = cdist(arr1, arr2, metric='sqeuclidean')
+
+    return dist
 
 
 def chi_square_distance(arr1, arr2):
     """
-    Computes chi-squared distance between ``arr1`` and ``arr2``
+    Computes chi-squared distance between `arr1` and `arr2`
 
     Parameters
     ----------
     arr1, arr2 : (N x M) array_like
-        Input matrices. Can differ on ``N`` but ``M`` must be the same.
+        Input matrices. Can differ on `N` but `M` must be the same.
 
     Returns
     -------

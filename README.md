@@ -27,7 +27,7 @@ Using `git clone` and `python setup.py install` should do the trick.
 R- and Matlab-compatible function names are accessible via ``snf.R`` and ``snf.matlab``, respectively.
 
 ## Copyright
-Implements Python-based version of [Similarity Network Fusion](http://compbio.cs.toronto.edu/SNF/SNF/Software.html).  
+Implements Python-based version of [Similarity Network Fusion](http://compbio.cs.toronto.edu/SNF/SNF/Software.html).
 Copyright (C) 2017 Ross Markello
 
 This program is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
