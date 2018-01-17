@@ -8,7 +8,7 @@ from sklearn.metrics import normalized_mutual_info_score
 
 def make_affinity(arr, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
     """
-    Constructs affinity (i.e., similarity) matrix given `arr`
+    Constructs affinity (i.e., similarity) matrix given feature matrix `arr`
 
     Performs columnwise normalization on `arr`, computes distance matrix of
     based on provided `metric`, and then constructs affinity matrix.
@@ -34,10 +34,13 @@ def make_affinity(arr, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
         Affinity matrix
     """
 
+    # normalize data using ddof=1 for stdev calculation and convert NaN to zero
     if normalize:
         arr = np.nan_to_num(scipy.stats.zscore(arr, ddof=1))
-    similarity = cdist(arr, arr, metric=metric)
-    affinity = affinity_matrix(similarity, K=K, mu=mu)
+    # construct distance matrix using provided `metric`
+    distance = cdist(arr, arr, metric=metric)
+    # make similarity (affinity) matrix
+    affinity = affinity_matrix(distance, K=K, mu=mu)
 
     return affinity
 
@@ -61,7 +64,7 @@ def affinity_matrix(dist, K=20, mu=0.5):
 
     Returns
     -------
-    (N x N) np.ndarray
+    W : (N x N) np.ndarray
         Affinity matrix
 
     Notes
@@ -70,16 +73,22 @@ def affinity_matrix(dist, K=20, mu=0.5):
 
     .. math::
 
-       W(i,j) = exp \\left( -\\frac{\\rho ^2 (x_{i},x_{j})}{\\mu \\varepsilon_{i,j}} \\right)
+       W(i,j) = exp \\left(-\\frac{\\rho ^2 (x_{i},x_{j})}
+                                  {\\mu \\varepsilon_{i,j}} \\right)
 
-    where :math:`\\varepsilon _{i,j}` is
+    where :math:`\\rho ^2 (x_{i},x_{j})` is the squared Euclidean distance (or
+    other distance metric, as appropriate) between :math:`x_{i}` and
+    :math:`x_{j}`, and :math:`\\varepsilon _{i,j}` is calculated as
 
     .. math::
 
-       \\varepsilon_{i,j} = \\frac{mean(\\rho(x_{i},N_{i})) + mean(\\rho(x_{j},N_{j})) + \\rho(x_{i},x_{j})}{3}
+       \\varepsilon_{i,j} = \\frac{\\overline{\\rho}(x_{i},N_{i}) +
+                                   \\overline{\\rho}(x_{j},N_{j}) +
+                                   \\rho(x_{i},x_{j})}
+                                  {3}
 
-    and :math:`mean(\\rho(x_{i}, N_{i}))` represents the average value between
-    :math:`x_{i}` and its `K` nearest neighbors.
+    Here, :math:`\\overline{\\rho}(x_{i}, N_{i})` represents the average value
+    of distances between :math:`x_{i}` and its `K` neighbors, :math:`N`.
     """
 
     dist = np.array(dist)
