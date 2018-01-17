@@ -7,6 +7,7 @@ This code is a translation of the original source code and is released as a deri
 ## Status
 [![Build Status](https://travis-ci.org/rmarkello/SNFpy.svg?branch=master)](https://travis-ci.org/rmarkello/SNFpy)
 [![codecov](https://codecov.io/gh/rmarkello/SNFpy/branch/master/graph/badge.svg)](https://codecov.io/gh/rmarkello/SNFpy)
+[![Documentation Status](https://readthedocs.org/projects/snfpy/badge/?version=latest)](http://snfpy.readthedocs.io/en/latest/?badge=latest)
 
 ## Requirements
 Python 3.5 or higher
