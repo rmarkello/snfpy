@@ -1,13 +1,15 @@
-SNFpy: Similarity Network Fusion
-------------------------------------------
+================================
+snfpy: Similarity Network Fusion
+================================
+``snfpy`` is a Python implementation of Similarity Network Fusion (originally written for and available in `R <https://github.com/maxconway/SNFtool>`_ and `MATLAB <http://compbio.cs.toronto.edu/SNF/SNF/Software.html>`_).
 
-``SNFpy`` is a Python implementation of Similarity Network Fusion (originally written and available in `R <https://github.com/maxconway/SNFtool>`_ and `MATLAB <http://compbio.cs.toronto.edu/SNF/SNF/Software.html>`_).
-
+Usage
+-----
 See the :ref:`API reference <api_ref>` for information on using the package.
 
 Citations
 ---------
-When using SNFpy, please include the following citation:
+When using snfpy, please include the following citation:
 
 Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M., Haibe-Kains, B., & Goldenberg, A.
 (2014).
@@ -17,8 +19,11 @@ Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M., Haibe-Kains,
 License Information
 -------------------
 
-SNFpy is licensed under GNU Lesser General Public License version 3. All trademarks referenced herein are property of their respective holders.
+``snfpy`` is licensed under GNU Lesser General Public License version 3. All trademarks referenced herein are property of their respective holders.
 
+Contents
+--------
 .. toctree::
    :maxdepth: 1
+
    api

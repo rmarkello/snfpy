@@ -19,12 +19,12 @@ def test_make_affinity():
 
 def test_find_dominate_set():
     aff = compute.make_affinity(data1)
-    compute.find_dominate_set(aff)
+    compute._find_dominate_set(aff)
 
 
 def test_B0_normalized():
     aff = compute.make_affinity(data1)
-    compute.B0_normalized(aff)
+    compute._B0_normalized(aff)
 
 
 def test_SNF():
@@ -58,10 +58,10 @@ def test_spectral_labels():
 
 def test_silhouette_samples():
     aff = compute.make_affinity(data1)
-    out = compute.silhouette_samples(aff, label)
+    out = compute._silhouette_samples(aff, label)
     assert out.shape == label.shape
     with pytest.raises(ValueError):
-        compute.silhouette_samples(aff, np.ones(len(aff)))
+        compute._silhouette_samples(aff, np.ones(len(aff)))
 
 
 def test_silhouette_score():

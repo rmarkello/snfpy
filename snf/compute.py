@@ -95,7 +95,7 @@ def affinity_matrix(dist, K=20, mu=0.5):
     return W
 
 
-def find_dominate_set(W, K=20):
+def _find_dominate_set(W, K=20):
     """
     Parameters
     ----------
@@ -119,7 +119,7 @@ def find_dominate_set(W, K=20):
     return newW
 
 
-def B0_normalized(W, alpha=1.0):
+def _B0_normalized(W, alpha=1.0):
     """
     Normalizes `W` so that subjects are always most similar to themselves
 
@@ -170,13 +170,13 @@ def SNF(aff, K=20, t=20, alpha=1.0):
     for i in range(len(aff)):
         aff[i] = aff[i] / aff[i].sum(axis=1)[:, np.newaxis]
         aff[i] = (aff[i] + aff[i].T) / 2
-        newW[i] = find_dominate_set(aff[i], round(K))
+        newW[i] = _find_dominate_set(aff[i], round(K))
         Wsum = Wsum + aff[i]
 
     for iteration in range(t):
         for i in range(len(aff)):
             aff0[i] = newW[i] @ (Wsum - aff[i]) @ newW[i].T / (len(aff) - 1)
-            aff[i] = B0_normalized(aff0[i], alpha)
+            aff[i] = _B0_normalized(aff0[i], alpha)
         Wsum = np.zeros((m, n))
         for i in range(len(aff)):
             Wsum = Wsum + aff[i]
@@ -310,7 +310,7 @@ def spectral_labels(arr, n_clusters, affinity='precomputed'):
     return labels
 
 
-def silhouette_samples(arr, labels):
+def _silhouette_samples(arr, labels):
     """
     Calculates modified silhouette score from affinity matrix
 
@@ -331,8 +331,13 @@ def silhouette_samples(arr, labels):
 
     Returns
     -------
-    (N,) np.ndarray
+    sil_samples : (N,) np.ndarray
         Modified (affinity) silhouette scores for each sample
+
+    Notes
+    -----
+    Code is *lightly* modified from the `sklearn` implementation. See:
+    `sklearn.metrics.silhouette_samples`
 
     References
     ----------
@@ -347,11 +352,6 @@ def silhouette_samples(arr, labels):
        learning in Python. Journal of Machine Learning Research, 12(Oct),
        2825-2830.
        <https://github.com/scikit-learn/>`_
-
-    Note
-    ----
-    Code is *lightly* modified from the `sklearn` implementation. See:
-    `sklearn.metrics.silhouette_samples`
     """
 
     from sklearn.preprocessing import LabelEncoder
@@ -434,27 +434,13 @@ def silhouette_score(arr, labels):
     float
         Modified (affinity) silhouette score
 
-    References
-    ----------
-    .. [1] `Peter J. Rousseeuw (1987). "Silhouettes: a Graphical Aid to the
-       Interpretation and Validation of Cluster Analysis". Computational
-       and Applied Mathematics 20: 53-65.
-       <http://www.sciencedirect.com/science/article/pii/0377042787901257>`_
-    .. [2] `Wikipedia entry on the Silhouette Coefficient
-       <https://en.wikipedia.org/wiki/Silhouette_(clustering)>`_
-    .. [3] `Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion,
-       B., Grisel, O., ... & Vanderplas, J. (2011). Scikit-learn: Machine
-       learning in Python. Journal of Machine Learning Research, 12(Oct),
-       2825-2830.
-       <https://github.com/scikit-learn/>`_
-
-    Note
-    ----
+    Notes
+    -----
     Code is *lightly* modified from the `sklearn` implementation. See:
     `sklearn.metrics.silhouette_score`
     """
 
-    return np.mean(silhouette_samples(arr, labels))
+    return np.mean(_silhouette_samples(arr, labels))
 
 
 def affinity_zscore(arr, labels, n_perms=1000, seed=None):
