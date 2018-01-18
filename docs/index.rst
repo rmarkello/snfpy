@@ -9,7 +9,7 @@ See the :ref:`API reference <api_ref>` for information on using the package.
 
 Citations
 ---------
-When using snfpy, please include the following citation:
+When using ``snfpy``, please include the following citation:
 
 Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M., Haibe-Kains, B., & Goldenberg, A.
 (2014).
@@ -18,8 +18,7 @@ Wang, B., Mezlini, A. M., Demir, F., Fiume, M., Zu, T., Brudno, M., Haibe-Kains,
 
 License Information
 -------------------
-
-``snfpy`` is licensed under GNU Lesser General Public License version 3. All trademarks referenced herein are property of their respective holders.
+``snfpy`` is licensed under version 3 of the GNU Lesser General Public License. All trademarks referenced herein are property of their respective holders.
 
 Contents
 --------

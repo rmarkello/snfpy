@@ -23,10 +23,11 @@ def make_affinity(arr, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
         Hyperparameter normalization factor for scaling. Default: 0.5
     metric : str, optional
         Distance metric to compute. Must be one of available metrics in
-        `scipy.spatial.distance.cdist`. Default: 'sqeuclidean'
+        ``scipy.spatial.distance.cdist``. Default: 'sqeuclidean'
     normalize : bool, optional
-        Whether to normalize (i.e., zscore) the data before constructing the
-        affinity matrix. Each feature is normalized separately. Default: True
+        Whether to normalize (i.e., zscore) `arr` before constructing the
+        affinity matrix. Each feature (i.e., column) is normalized separately.
+        Default: True
 
     Returns
     -------
@@ -69,36 +70,43 @@ def affinity_matrix(dist, K=20, mu=0.5):
 
     Notes
     -----
-    The exponential similarity kernel takes the form
+    The scaled exponential similarity kernel, based on the probability density
+    function of the normal distribution, takes the form:
 
     .. math::
 
-       W(i,j) = exp \\left(-\\frac{\\rho ^2 (x_{i},x_{j})}
-                                  {\\mu \\varepsilon_{i,j}} \\right)
+       \\mathbf{W}(i, j) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}}
+                           \\ exp^{-\\frac{\\rho^2(x_{i},x_{j})}{2\\sigma^2}}
 
-    where :math:`\\rho ^2 (x_{i},x_{j})` is the squared Euclidean distance (or
-    other distance metric, as appropriate) between :math:`x_{i}` and
-    :math:`x_{j}`, and :math:`\\varepsilon _{i,j}` is calculated as
+    where :math:`\\rho(x_{i},x_{j})` is the Euclidean distance (or other
+    distance metric, as appropriate) between patients :math:`x_{i}` and
+    :math:`x_{j}`. The value for :math:`\\sigma` is calculated as:
 
     .. math::
 
-       \\varepsilon_{i,j} = \\frac{\\overline{\\rho}(x_{i},N_{i}) +
-                                   \\overline{\\rho}(x_{j},N_{j}) +
-                                   \\rho(x_{i},x_{j})}
-                                  {3}
+       \\sigma = \\mu\\ \\frac{\\overline{\\rho}(x_{i},N_{i}) +
+                               \\overline{\\rho}(x_{j},N_{j}) +
+                               \\rho(x_{i},x_{j})}
+                              {3}
 
-    Here, :math:`\\overline{\\rho}(x_{i}, N_{i})` represents the average value
-    of distances between :math:`x_{i}` and its `K` neighbors, :math:`N`.
+    where :math:`\\overline{\\rho}(x_{i},N_{i})` represents the average value
+    of distances between :math:`x_{i}` and its neighbors :math:`N_{1..K}`,
+    and :math:`\\mu\\in(0, 1)\\subset\\mathbb{R}`.
     """
 
+    # if distance matrix is directed take average of weights between i and j
     dist = np.array(dist)
     dist = (dist + dist.T) / 2
     dist[np.diag_indices_from(dist)] = 0
+    # sort distance array
     T = np.sort(dist, axis=1)
+    # average distance to first K neighbors (1:K+1 avoids including self)
     TT = np.vstack(T[:, 1:K + 1].mean(axis=1) + np.spacing(1))
+    # compute epsilon (see equation in Notes)
     sig = (TT + TT.T + dist) / 3
     sig = (sig * (sig > np.spacing(1))) + np.spacing(1)
-    W = scipy.stats.norm.pdf(dist, 0, mu * sig)
+    # get probability density function for dist with scale mu*sig
+    W = scipy.stats.norm.pdf(dist, loc=0, scale=mu*sig)
     W = (W + W.T) / 2
 
     return W
@@ -170,6 +178,26 @@ def SNF(aff, K=20, t=20, alpha=1.0):
     -------
     W: (N x N) np.ndarray
         Fused similarity network of input arrays
+
+    Notes
+    -----
+    .. math::
+
+       \\mathbf{P}(i,j) =
+         \\left\{\\begin{array}{rr}
+           \\frac{\\mathbf{W}_(i,j)}
+                 {2 \\sum_{k\\neq i}^{} \\mathbf{W}_(i,k)} ,& j \\neq i \\\\
+                                                       1/2 ,& j = i
+         \\end{array}\\right.
+
+    .. math::
+
+       \\mathbf{S}(i,j) =
+         \\left\{\\begin{array}{rr}
+           \\frac{\\mathbf{W}_(i,j)}
+                 {\\sum_{k\\in N_{i}}^{} \\mathbf{W}_(i,k)} ,& j \\in N_{i} \\\\
+                                                         0   ,& \\text{otherwise}
+         \\end{array}\\right.
     """
 
     m, n = aff[0].shape
