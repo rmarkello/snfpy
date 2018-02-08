@@ -1,18 +1,18 @@
 ## SNFpy
 
-`SNFpy` is a Python implementation of [`SNFtool`](https://github.com/maxconway/SNFtool), a toolbox for performing [Similarity Network Fusion](http://compbio.cs.toronto.edu/SNF/SNF/Software.html).
+`snfpy` is a Python implementation of [`SNFtool`](https://github.com/maxconway/SNFtool), a toolbox for performing [Similarity Network Fusion](http://compbio.cs.toronto.edu/SNF/SNF/Software.html).
 
-This code is a translation of the original source code and is released as a derivative under the [LGPLv3](https://github.com/rmarkello/SNFpy/blob/master/LICENSE). You can learn more about the original code by reading the original paper ([Wang et al., 2014, Nature Methods](https://www.ncbi.nlm.nih.gov/pubmed/24464287)).
+This code is a translation of the original source code and is released as a derivative under the [LGPLv3](https://github.com/rmarkello/snfpy/blob/master/LICENSE). You can learn more about the original code by reading the original paper ([Wang et al., 2014, Nature Methods](https://www.ncbi.nlm.nih.gov/pubmed/24464287)).
 
 ## Status
-[![Build Status](https://travis-ci.org/rmarkello/SNFpy.svg?branch=master)](https://travis-ci.org/rmarkello/SNFpy)
-[![codecov](https://codecov.io/gh/rmarkello/SNFpy/branch/master/graph/badge.svg)](https://codecov.io/gh/rmarkello/SNFpy)
+[![Build Status](https://travis-ci.org/rmarkello/snfpy.svg?branch=master)](https://travis-ci.org/rmarkello/snfpy)
+[![codecov](https://codecov.io/gh/rmarkello/snfpy/branch/master/graph/badge.svg)](https://codecov.io/gh/rmarkello/snfpy)
 [![Documentation Status](https://readthedocs.org/projects/snfpy/badge/?version=latest)](http://snfpy.readthedocs.io/en/latest/?badge=latest)
 
 ## Requirements
 Python 3.5 or higher
 
-See [`requirements.txt`](https://github.com/rmarkello/SNFpy/blob/master/requirements.txt) for more info on required modules.
+See [`requirements.txt`](https://github.com/rmarkello/snfpy/blob/master/requirements.txt) for more info on required modules.
 
 ## Installation
 Using `git clone` and `python setup.py install` should do the trick.

@@ -1,4 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+Examples
+--------
+  .. testsetup::
+    # change directory to provide relative paths for doctests
+    >>> import os
+    >>> filepath = os.path.dirname(os.path.realpath(__file__))
+    >>> datadir = os.path.realpath(os.path.join(filepath, 'tests/data'))
+    >>> os.chdir(datadir)
+"""
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -6,21 +16,24 @@ import scipy.stats
 from sklearn.metrics import normalized_mutual_info_score
 
 
-def make_affinity(arr, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
+def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
     """
     Constructs affinity (i.e., similarity) matrix given feature matrix `arr`
 
-    Performs columnwise normalization on `arr`, computes distance matrix of
-    based on provided `metric`, and then constructs affinity matrix.
+    Performs columnwise normalization on `arr`, computes distance matrix based
+    on provided `metric`, and then constructs affinity matrix by calling
+    `affinity_matrix()`
 
     Parameters
     ----------
     arr : (N x M) array_like
         Raw data array, where `N` is samples and `M` is features
     K : (0, N) int, optional
-        Hyperparameter normalization factor for scaling. Default: 20
+        Hyperparameter normalization factor for scaling. See `Notes` of
+        `affinity_matrix` for more details. Default: 20
     mu : (0,1) float, optional
-        Hyperparameter normalization factor for scaling. Default: 0.5
+        Hyperparameter normalization factor for scaling. See `Notes` of
+        `affinity_matrix` for more details. Default: 0.5
     metric : str, optional
         Distance metric to compute. Must be one of available metrics in
         ``scipy.spatial.distance.cdist``. Default: 'sqeuclidean'
@@ -33,26 +46,34 @@ def make_affinity(arr, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
     -------
     affinity : (N x N) np.ndarray
         Affinity matrix
+
+    Examples
+    --------
+    >>> data = np.loadtxt('data1.csv')
+    >>> data.shape
+    (200, 2)
+    >>> aff = make_affinity(data, K=20, mu=0.5, metric='sqeuclidean')
+    >>> aff.shape
+    (200, 200)
     """
 
-    # normalize data using ddof=1 for stdev calculation and convert NaN to zero
+    # normalize data using ddof=1 for stdev calculation and convert NaNs
     if normalize:
         arr = np.nan_to_num(scipy.stats.zscore(arr, ddof=1))
-    # construct distance matrix using provided `metric`
+    # construct distance matrix using `metric` and make affinity matrix
     distance = cdist(arr, arr, metric=metric)
-    # make similarity (affinity) matrix
     affinity = affinity_matrix(distance, K=K, mu=mu)
 
     return affinity
 
 
-def affinity_matrix(dist, K=20, mu=0.5):
+def affinity_matrix(dist, *, K=20, mu=0.5):
     """
     Calculates affinity matrix given distance matrix `dist`
 
     Uses a scaled exponential similarity kernel to determine the weight of each
-    edge based on `dist`. Optional hyperparameters `K` and `mu`
-    determine the extent of the scaling (see `Notes`).
+    edge based on `dist`. Optional hyperparameters `K` and `mu` determine the
+    extent of the scaling (see `Notes`).
 
     Parameters
     ----------
@@ -92,6 +113,16 @@ def affinity_matrix(dist, K=20, mu=0.5):
     where :math:`\\overline{\\rho}(x_{i},N_{i})` represents the average value
     of distances between :math:`x_{i}` and its neighbors :math:`N_{1..K}`,
     and :math:`\\mu\\in(0, 1)\\subset\\mathbb{R}`.
+
+    Examples
+    --------
+    >>> data = np.loadtxt('data1.csv')
+    >>> dist = cdist(data, data, metric='euclidean')
+    >>> dist.shape
+    (200, 200)
+    >>> aff = affinity_matrix(dist)
+    >>> aff.shape
+    (200, 200)
     """
 
     # if distance matrix is directed take average of weights between i and j
@@ -159,13 +190,13 @@ def _B0_normalized(W, alpha=1.0):
     return W
 
 
-def SNF(aff, K=20, t=20, alpha=1.0):
+def SNF(aff, *, K=20, t=20, alpha=1.0):
     """
     Performs Similarity Network Fusion on `aff` matrices
 
     Parameters
     ----------
-    aff : list of (N x N) array_like
+    aff : `m`-list of (N x N) array_like
         Input similarity arrays. All arrays should be square and of equal size.
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. Default: 20
@@ -181,6 +212,11 @@ def SNF(aff, K=20, t=20, alpha=1.0):
 
     Notes
     -----
+    In order to fuse the supplied :math:`m` arrays, each must be normalized. A
+    traditional normalization on an affinity matrix would suffer from numerical
+    instabilities due to the self-similarity along the diagonal; thus, a
+    modified normalization is used:
+
     .. math::
 
        \\mathbf{P}(i,j) =
@@ -190,14 +226,41 @@ def SNF(aff, K=20, t=20, alpha=1.0):
                                                        1/2 ,& j = i
          \\end{array}\\right.
 
+    Under the assumption that local similarties are more important than distant
+    ones, we also calculate a more sparse weight matrix based on a KNN
+    framework:
+
     .. math::
 
        \\mathbf{S}(i,j) =
          \\left\{\\begin{array}{rr}
            \\frac{\\mathbf{W}_(i,j)}
-                 {\\sum_{k\\in N_{i}}^{} \\mathbf{W}_(i,k)} ,& j \\in N_{i} \\\\
-                                                         0   ,& \\text{otherwise}
+                 {\\sum_{k\\in N_{i}}^{}\\mathbf{W}_(i,k)} ,& j \\in N_{i} \\\\
+                                                         0 ,& \\text{otherwise}
          \\end{array}\\right.
+
+    The two weight matrices :math:`\\mathbf{P}` and :math:`\\mathbf{S}` thus
+    provide information about a given patient's similarity to all other
+    patients and the `K` most similar patients, respectively.
+
+    These :math:`m` matrices are then iteratively fused. At each iteration, the
+    matrices are made more similar to each other via:
+
+    .. math::
+
+       \\mathbf{P}^{(v)} = \\mathbf{S}^{(v)}
+                           \\times
+                           \\frac{\\sum_{k\\neq v}^{}\\mathbf{P}^{(k)}}{m-1}
+                           \\times
+                           (\\mathbf{S}^{(v)})^{T},
+                           v = 1, 2, ..., m
+
+    After each iteration, the resultant matrices are normalized via the
+    normalization equation above. Fusion stops after `t` iterations, or when
+    the matrices :math:`\\mathbf{P}^{(v)}, v = 1, 2, ..., m` converge.
+
+    The output fused matrix is full rank and can be subjected to clustering and
+    classification.
     """
 
     m, n = aff[0].shape
@@ -229,15 +292,25 @@ def snf_nmi(labels):
     """
     Calculates normalized mutual information for all combinations of `labels`
 
+    Uses ``sklearn`` implementation of `normalized_mutual_info_score`.
+
     Parameters
     ----------
-    labels : (N,) list
+    labels : `m`-list of (N,) array_like
         List of label arrays
 
     Returns
     -------
-    (N x N) np.ndarray
+    (m x m ) np.ndarray
         NMI score for all combinations of `labels`
+
+    Examples
+    --------
+    >>> label1 = np.array([1,1,1,2,2,2])
+    >>> label2 = np.array([1,1,2,2,2,2])
+    >>> snf_nmi([label1, label2])
+    array([[1.        , 0.47913877],
+           [0.47913877, 1.        ]])
     """
 
     nmi = np.empty(shape=(len(labels), len(labels)))
@@ -265,26 +338,34 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
         Optimal number of clusters
     int
         Second best number of clusters
+
+    Examples
+    --------
+    >>> np.random.seed(1234)
+    >>> data = np.random.rand(100, 100)
+    >>> get_n_clusters(data)
+    (4, 2)
     """
 
     from sklearn.decomposition import PCA
 
+    n_clusters = np.asarray(n_clusters)
     eigenvalue = PCA().fit(arr).singular_values_[:-1]
     eigengap = np.abs(np.diff(eigenvalue))
     eigengap = eigengap * (1 - eigenvalue[:-1]) / (1 - eigenvalue[1:])
-    n = eigengap[n_clusters].argsort()[::-1]
+    n = eigengap[n_clusters-1].argsort()[::-1]
 
     return n_clusters[n[0]], n_clusters[n[1]]
 
 
-def rank_feature_by_nmi(inputs, W, K=20, mu=0.5, n_clusters=None):
+def rank_feature_by_nmi(inputs, W, *, K=20, mu=0.5, n_clusters=None):
     """
     Calculates NMI of each feature in `inputs` with `W`
 
     Parameters
     ----------
     inputs : list-of-tuples
-        Each tuple should be comprised of an N x M array_like object, where N
+        Each tuple should be comprised of an (N x M) array_like object, where N
         is samples and M is features, and a distance metric string (e.g.,
         'euclidean', 'sqeuclidean')
     W : (N x N) array_like
@@ -318,16 +399,18 @@ def rank_feature_by_nmi(inputs, W, K=20, mu=0.5, n_clusters=None):
     return nmi
 
 
-def spectral_labels(arr, n_clusters, affinity='precomputed'):
+def spectral_labels(arr, n_clusters=3, affinity='precomputed'):
     """
     Performs spectral clustering on `arr` and returns assigned cluster labels
 
     Parameters
     ----------
     arr : {(N x N), (N x M)} array_like
-        Array to be clustered. If N x M, must set `affinity`.
-    n_clusters : int
-        Number of desired clusters.
+        Array to be clustered. Default assumes that the array is an affinity
+        matrix (N x N), where N is samples. If supplying an (N x M) samples by
+        features array, you must also set `affinity`.
+    n_clusters : int, optional
+        Number of desired clusters. Default: 3
     affinity : str, optional
         Affinity metric. If `arr` is N x N, must be 'precomputed' (default).
         Otherwise, must be one of ['nearest_neighbors', 'rbf', 'sigmoid',
@@ -473,7 +556,7 @@ def silhouette_score(arr, labels):
 
     Notes
     -----
-    Code is *lightly* modified from the `sklearn` implementation. See:
+    Code is *lightly* modified from the ``sklearn`` implementation. See:
     `sklearn.metrics.silhouette_score`
     """
 
@@ -517,7 +600,7 @@ def dist2(arr1, arr2=None):
     """
     Wrapper of `cdist` with squared euclidean as distance metric
 
-    Available for `SNFtool` compatibility; should probably just use
+    Available for `SNFtool` compatibility; you should probably just use
     `make_affinity()` instead
 
     Parameters

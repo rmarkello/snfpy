@@ -5,7 +5,7 @@ snfpy: Similarity Network Fusion
 
 Usage
 -----
-See the :ref:`API reference <api_ref>` for information on using the package.
+See :ref:`Usage <usage_ref>` or the :ref:`API reference <api_ref>` for information on how to get started with this package.
 
 Citations
 ---------
@@ -25,4 +25,5 @@ Contents
 .. toctree::
    :maxdepth: 1
 
+   usage
    api

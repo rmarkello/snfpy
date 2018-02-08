@@ -3,7 +3,7 @@ __version__ = '0.0.1'
 NAME = 'snf'
 MAINTAINER = 'Ross Markello'
 VERSION = __version__
-LICENSE = 'GPLv3'
+LICENSE = 'GLPLv3'
 DESCRIPTION = 'A toolbox for Similarity Network Fusion (SNF)'
 DOWNLOAD_URL = 'http://github.com/rmarkello/snfpy'
 
@@ -19,4 +19,5 @@ TESTS_REQUIRE = [
 ]
 
 PACKAGE_DATA = {
+     'snf': ['tests/data/*']
 }
