@@ -1,4 +1,4 @@
--r requirements.txt
+-r ../requirements.txt
 numpydoc
 sphinx>=1.2
 sphinx_rtd_theme
