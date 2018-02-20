@@ -27,5 +27,3 @@ of SNF, which can serve as a wonderful illustrative example. ::
 
     # cluster the data and return the labels
     labels = snf.spectral_labels(fused_aff, n_clusters=n_clusters)
-
-    
