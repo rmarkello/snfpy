@@ -7,6 +7,11 @@ import sys
 def main():
     from setuptools import setup, find_packages
 
+    if sys.version_info < (3, 5):
+        raise SystemError('You need Python version 3.5 or above to use ' +
+                          'this package. Current\nversion detected is ' +
+                          sys.version.split(' ')[0])
+
     # from nipype setup.py file
     ldict = locals()
     curr_path = os.path.dirname(__file__)
