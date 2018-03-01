@@ -34,8 +34,8 @@ def test_SNF():
     assert out.shape == aff[1].shape
 
 
-def test_snf_nmi():
-    compute.snf_nmi([label, label, label])
+def test_nmi():
+    compute.nmi([label, label, label])
 
 
 def test_get_n_clusters():

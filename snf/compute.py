@@ -2,9 +2,7 @@
 """
 Code for implementing Similarity Network Fusion.
 
-Examples
---------
-  .. testsetup::
+.. testsetup::
     # change directory to provide relative paths for doctests
     >>> import os
     >>> filepath = os.path.dirname(os.path.realpath(__file__))
@@ -181,12 +179,13 @@ def _B0_normalized(W, alpha=1.0):
     W : (N x N) array_like
         Similarity array from SNF
     alpha : (0,1) float, optional
-        Hyperparameter normalization factor for scaling. Default: 1.0
+        Factor to add to diagonal of `W` to increase subject self-affinity.
+        Default: 1.0
 
     Returns
     -------
     W : (N x N) np.ndarray
-        Similarity array
+        "Normalized" similiarity array
     """
 
     # add `alpha` to the diagonal and symmetrize `W`
@@ -292,7 +291,7 @@ def SNF(aff, *, K=20, t=20, alpha=1.0):
     return W
 
 
-def snf_nmi(labels):
+def nmi(labels):
     """
     Calculates normalized mutual information for all combinations of `labels`
 
@@ -313,7 +312,7 @@ def snf_nmi(labels):
     --------
     >>> label1 = np.array([1,1,1,2,2,2])
     >>> label2 = np.array([1,1,2,2,2,2])
-    >>> snf_nmi([label1, label2])
+    >>> nmi([label1, label2])
     array([[1.        , 0.47913877],
            [0.47913877, 1.        ]])
     """
@@ -352,7 +351,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     >>> np.random.seed(1234)
     >>> data = np.random.rand(100, 100)
     >>> get_n_clusters(data)
-    (4, 2)
+    (2, 4)
     """
 
     from sklearn.decomposition import PCA
@@ -419,9 +418,9 @@ def spectral_labels(arr, n_clusters=3, affinity='precomputed'):
         matrix (N x N), where N is samples. If supplying an (N x M) samples by
         features array, you must also set `affinity`.
     n_clusters : int, optional
-        Number of desired clusters. Default: 3
+        Number of clusters in `arr`. Default: 3
     affinity : str, optional
-        Affinity metric. If `arr` is N x N, must be 'precomputed' (default).
+        Affinity metric. If `arr` is (N x N), must be 'precomputed' (default).
         Otherwise, must be one of ['nearest_neighbors', 'rbf', 'sigmoid',
         'polynomial', 'poly', 'linear', 'cosine'].
 
