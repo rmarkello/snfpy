@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import os
+import os.path as op
+import pkg_resources
 import numpy as np
 import pytest
 from snf import compute
 
 rs = np.random.RandomState(1234)
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-data1 = np.loadtxt(os.path.join(TEST_DIR, 'data/data1.csv'))
-data2 = np.loadtxt(os.path.join(TEST_DIR, 'data/data2.csv'))
-label = np.loadtxt(os.path.join(TEST_DIR, 'data/label.csv'), dtype=int)
+test_dir = pkg_resources.resource_filename('snf', 'tests/data/sim')
+data1 = np.loadtxt(op.join(test_dir, 'data1.csv'))
+data2 = np.loadtxt(op.join(test_dir, 'data2.csv'))
+label = np.loadtxt(op.join(test_dir, 'label.csv'), dtype=int)
 
 
 def test_make_affinity():
