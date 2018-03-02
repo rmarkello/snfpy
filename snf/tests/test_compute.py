@@ -80,8 +80,29 @@ def test_affinity_zscore():
 def test_dist2():
     dist = compute.dist2(data1, data2)
     assert dist.shape == (len(data1), len(data1))
+    assert np.allclose(compute.dist2(data1), compute.dist2(data1, data1))
 
 
 def test_chi_square_distance():
     with pytest.raises(NotImplementedError):
         compute.chi_square_distance(data1, data2)
+
+
+def test_group_predict():
+    train = [d[::2] for d in [data1, data2]]
+    test = [d[1::2] for d in [data1, data2]]
+    train_lab = label[::2]
+    compute.group_predict(train, test, train_lab)
+    with pytest.raises(ValueError):
+        tr = [d[:, 0] for d in train]
+        compute.group_predict(tr, test, train_lab)
+    with pytest.raises(ValueError):
+        compute.group_predict([train[0]], test, train_lab)
+    with pytest.raises(ValueError):
+        compute.group_predict(train, test, train_lab[:10])
+
+
+def test_dnorm():
+    compute._dnorm(np.random.rand(100, 100), norm='gph')
+    with pytest.raises(ValueError):
+        compute._dnorm(np.random.rand(100, 100), norm='bad')

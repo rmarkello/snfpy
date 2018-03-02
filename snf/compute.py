@@ -408,7 +408,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     # generate affinity matrices for stacked train/test data sets
     affinities = []
     for (tr, te) in zip(train, test):
-        if len(tr.T) == len(te.T):
+        if len(tr.T) != len(te.T):
             raise ValueError('Train and test data must have same number of '
                              'features for each data type. Make sure to '
                              'supply data types in the same order.')
