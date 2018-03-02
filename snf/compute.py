@@ -350,7 +350,7 @@ def _dnorm(W, norm='ave'):
 
     if norm not in ['ave', 'gph']:
         raise ValueError('`norm` must be in [\'ave\', \'gph\']. Provided '
-                         f'value is: {norm}')
+                         'value is: {}'.format(norm))
 
     D = W.sum(axis=1) + np.spacing(1)
 
