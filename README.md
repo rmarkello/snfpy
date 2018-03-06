@@ -18,7 +18,7 @@ See [`requirements.txt`](https://github.com/rmarkello/snfpy/blob/master/requirem
 Using `git clone` and `python setup.py install` should do the trick.
 
 ## Usage
-See the ['documentation'](http://snfpy.readthedocs.io/en/latest/usage.html) for how to use `snfpy`.
+See the [documentation](http://snfpy.readthedocs.io/en/latest/usage.html) for how to use `snfpy`.
 
 If you're coming from the R or Matlab toolboxes, note that R- and Matlab-compatible function names are accessible via `snf.R` and `snf.matlab`, respectively.
 
