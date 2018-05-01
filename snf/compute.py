@@ -235,8 +235,8 @@ def SNF(aff, *, K=20, t=20, alpha=1.0):
                                                        1/2 ,& j = i
          \\end{array}\\right.
 
-    Under the assumption that local similarties are more important than distant
-    ones, we also calculate a more sparse weight matrix based on a KNN
+    Under the assumption that local similarities are more important than
+    distant ones, we also calculate a more sparse weight matrix based on a KNN
     framework:
 
     .. math::
@@ -609,16 +609,15 @@ def _silhouette_samples(arr, labels):
 
     References
     ----------
-    .. [1] `Peter J. Rousseeuw (1987). "Silhouettes: a Graphical Aid to the
-       Interpretation and Validation of Cluster Analysis". Computational
-       and Applied Mathematics 20: 53-65.
+    .. [1] `Peter J. Rousseeuw (1987). Silhouettes: a Graphical Aid to the
+       Interpretation and Validation of Cluster Analysis. Computational
+       and Applied Mathematics, 20, 53-65.
        <http://www.sciencedirect.com/science/article/pii/0377042787901257>`_
     .. [2] `Wikipedia entry on the Silhouette Coefficient
        <https://en.wikipedia.org/wiki/Silhouette_(clustering)>`_
     .. [3] `Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion,
        B., Grisel, O., ... & Vanderplas, J. (2011). Scikit-learn: Machine
-       learning in Python. Journal of Machine Learning Research, 12(Oct),
-       2825-2830.
+       learning in Python. Journal of Machine Learning Research, 12, 2825-2830.
        <https://github.com/scikit-learn/>`_
     """
 
