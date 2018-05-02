@@ -13,6 +13,7 @@ Code for implementing Similarity Network Fusion.
 import numpy as np
 from scipy.spatial.distance import cdist
 import scipy.stats
+from sklearn.cluster import SpectralClustering
 from sklearn.metrics import normalized_mutual_info_score
 
 
@@ -569,8 +570,6 @@ def spectral_labels(arr, n_clusters=3, affinity='precomputed'):
     labels : (N,) np.ndarray
         Cluster labels
     """
-
-    from sklearn.cluster import SpectralClustering
 
     sc = SpectralClustering(n_clusters=n_clusters, affinity=affinity)
     labels = sc.fit_predict(arr)
