@@ -18,6 +18,8 @@ from snf import compute, utils
 def compute_SNF(inputs, *, K=20, mu=1, n_clusters=None,
                 t=20, n_perms=1000, normalize=True):
     """
+    Runs a full SNF on `inputs` and returns cluster affinity scores and labels
+
     Parameters
     ----------
     inputs : list-of-tuples
@@ -129,24 +131,25 @@ def SNF_gridsearch(data, *, mu=None, K=None, n_clusters=None, t=20, folds=3,
     if n_clusters is None:
         n_clusters = np.arange(2, n_samples // 20, dtype='int')
 
-    # parameters
-    parameters = dict(K=K, mu=mu)
+    mu, K, n_clusters = np.asarray(mu), np.asarray(K), np.asarray(n_clusters)
+
     # empty matrices to hold outputs of SNF
     grid_zaff, grid_labels = [], []
+
     # iterate through folds
     kf = KFold(n_splits=folds)
     for n_fold, (train_index, _) in enumerate(kf.split(data[0][0])):
         # create parameter generator for current iteration of grid search
-        param_grid = ParameterGrid(parameters)
+        param_grid = ParameterGrid(dict(K=K, mu=mu))
         # subset data arrays
-        fold_data = [(d[0].iloc[train_index], d[1]) for d in data]
+        fold_data = [(np.asarray(d[0])[train_index], d[1]) for d in data]
         # create empty arrays to store outputs
         fold_zaff = np.empty(shape=(K.size, mu.size, n_clusters.size,))
         fold_labels = np.empty(shape=(K.size, mu.size, n_clusters.size,
                                       len(train_index)))
         # generate SNF metrics for all parameter combinations in current fold
         for n, curr_params in enumerate(param_grid):
-            inds = np.unravel_index(n, fold_zaff.shape)
+            inds = np.unravel_index(n, fold_zaff.shape[:2])
             zaff, labels = compute_SNF(fold_data, n_clusters=n_clusters, t=t,
                                        n_perms=n_perms, normalize=normalize,
                                        **curr_params)

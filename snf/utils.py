@@ -119,6 +119,10 @@ def zrand(X, Y):
 
     # we need 2d arrays for this to work; shape (n,1)
     X, Y = np.atleast_2d(X), np.atleast_2d(Y)
+    if X.shape[0] < X.shape[1]:
+        X = X.T
+    if Y.shape[0] < Y.shape[1]:
+        Y = Y.T
     n = X.shape[0]
 
     indx, indy = dummyvar(X), dummyvar(Y)
@@ -129,14 +133,10 @@ def zrand(X, Y):
     M2 = Ya.nonzero()[0].size / 2
 
     wab = np.logical_and(Xa, Ya).nonzero()[0].size / 2
-    muab = (M1 * M2) / M
-
-    nx = indx.sum(0)
-    ny = indy.sum(0)
 
     mod = n * (n**2 - 3 * n - 2)
-    C1 = mod - (8 * (n + 1) * M1) + (4 * np.power(nx, 3).sum())
-    C2 = mod - (8 * (n + 1) * M2) + (4 * np.power(ny, 3).sum())
+    C1 = mod - (8 * (n + 1) * M1) + (4 * np.power(indx.sum(0), 3).sum())
+    C2 = mod - (8 * (n + 1) * M2) + (4 * np.power(indy.sum(0), 3).sum())
 
     a = M / 16
     b = ((4 * M1 - 2 * M)**2) * ((4 * M2 - 2 * M)**2) / (256 * (M**2))
@@ -149,8 +149,7 @@ def zrand(X, Y):
     # catch any negatives
     if sigw2 < 0:
         return 0
-    sigw = np.sqrt(sigw2)
-    z_rand = (wab - muab) / sigw
+    z_rand = (wab - ((M1 * M2) / M)) / np.sqrt(sigw2)
 
     return z_rand
 
@@ -165,8 +164,8 @@ def zrand_partitions(communities):
 
     Parameters
     ----------
-    communities : array_like
-        Community assignments; shape (parcels x repeats)
+    communities : (S x R) array_like
+        Community assignments for `S` samples over `R` partitions
 
     Returns
     -------
@@ -176,6 +175,7 @@ def zrand_partitions(communities):
         Standard deviation of z-Rand over pairs of community assignments
     """
 
+    # TODO: parallelize this
     all_zrand = [zrand(f[0][:, None], f[1][:, None]) for f in
                  combinations(communities.T, 2)]
     zrand_avg, zrand_std = np.nanmean(all_zrand), np.nanstd(all_zrand)
@@ -193,8 +193,8 @@ def zrand_convolve(labelgrid, neighbors='edges'):
     Parameters
     ----------
     grid : (S x K x N) array_like
-        Array containing cluster labels for each N samples, where S is mu
-        and K is K.
+        Array containing cluster labels for each `N` samples, where `S` is mu
+        and `K` is K.
     neighbors : str, optional
         How many neighbors to consider when calculating Z-rand kernel. Must be
         in ['edges', 'corners']. Default: 'edges'
@@ -209,14 +209,9 @@ def zrand_convolve(labelgrid, neighbors='edges'):
     """
 
     inds = cartesian([range(labelgrid.shape[0]), range(labelgrid.shape[1])])
-    if neighbors == 'edges':
-        get_neighbors = edge_neighbors
-    else:
-        get_neighbors = corner_neighbors
-
     zrand = np.empty(shape=labelgrid.shape[:-1] + (2,))
     for x, y in inds:
-        ninds = get_neighbors(x, y)
+        ninds = get_neighbors(x, y, neighbors=neighbors, shape=labelgrid.shape)
         zrand[x, y] = zrand_partitions(labelgrid[ninds].T)
 
     return zrand[..., 0], zrand[..., 1]
