@@ -12,7 +12,7 @@ Code for implementing cross-validation of Similarity Network Fusion.
 
 import numpy as np
 from sklearn.model_selection import KFold, ParameterGrid
-from snf import compute, utils
+from snf import compute, utils, metrics
 
 
 def compute_SNF(inputs, *, K=20, mu=1, n_clusters=None,
@@ -62,9 +62,9 @@ def compute_SNF(inputs, *, K=20, mu=1, n_clusters=None,
     elif isinstance(n_clusters, int):
         n_clusters = [n_clusters]
 
-    snf_labels = [compute.spectral_labels(snf_aff, clust)
+    snf_labels = [compute.spectral_clustering(snf_aff, clust)
                   for clust in n_clusters]
-    z_affinity = [compute.affinity_zscore(snf_aff, label, n_perms=n_perms)
+    z_affinity = [metrics.affinity_zscore(snf_aff, label, n_perms=n_perms)
                   for label in snf_labels]
 
     return z_affinity, snf_labels

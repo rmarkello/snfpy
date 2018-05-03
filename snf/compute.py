@@ -11,10 +11,13 @@ Code for implementing Similarity Network Fusion.
 """
 
 import numpy as np
+from scipy.sparse import diags
 from scipy.spatial.distance import cdist
 import scipy.stats
-from sklearn.cluster import SpectralClustering
-from sklearn.metrics import normalized_mutual_info_score
+from sklearn.cluster import spectral_clustering
+from sklearn.decomposition import PCA
+from sklearn.utils.validation import (check_array, check_symmetric,
+                                      check_consistent_length)
 
 
 def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
@@ -132,8 +135,7 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
     """
 
     # if distance matrix is directed, symmetrize based on average of weights
-    dist = np.array(dist)
-    dist = (dist + dist.T) / 2
+    dist = check_symmetric(check_array(dist))
     dist[np.diag_indices_from(dist)] = 0
 
     # sort array and get average distance to K nearest neighbors
@@ -146,7 +148,7 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
 
     # get probability density function with scale mu*sigma and symmetrize
     W = scipy.stats.norm.pdf(dist, loc=0, scale=mu*sigma)
-    W = (W + W.T) / 2
+    W = check_symmetric(W)
 
     return W
 
@@ -195,7 +197,7 @@ def _B0_normalized(W, alpha=1.0):
 
     # add `alpha` to the diagonal and symmetrize `W`
     W = W + (alpha * np.eye(len(W)))
-    W = (W + W.T) / 2
+    W = check_symmetric(W, raise_warning=False)
 
     return W
 
@@ -273,13 +275,16 @@ def SNF(aff, *, K=20, t=20, alpha=1.0):
     classification.
     """
 
+    aff = [check_symmetric(check_array(a)) for a in aff]
+    check_consistent_length(*aff)
+
     m, n = aff[0].shape
     newW, aff0 = [0] * len(aff), [0] * len(aff)
     Wsum = np.zeros((m, n))
 
     for i in range(len(aff)):
         aff[i] = aff[i] / aff[i].sum(axis=1)[:, np.newaxis]
-        aff[i] = (aff[i] + aff[i].T) / 2
+        aff[i] = check_symmetric(aff[i], raise_warning=False)
         newW[i] = _find_dominate_set(aff[i], round(K))
     Wsum = np.sum(aff, axis=0)
 
@@ -319,7 +324,7 @@ def _label_prop(W, Y, *, t=1000):
     """
 
     W_norm, Y_orig = _dnorm(W, 'ave'), Y.copy()
-    train_index = np.sum(Y, axis=1) == 1
+    train_index = Y.sum(axis=1) == 1
 
     for iteration in range(t):
         Y = W_norm @ Y
@@ -346,8 +351,6 @@ def _dnorm(W, norm='ave'):
     W_norm : (N x N) array_like
         Normalized `W`
     """
-
-    from scipy.sparse import diags
 
     if norm not in ['ave', 'gph']:
         raise ValueError('`norm` must be in [\'ave\', \'gph\']. Provided '
@@ -381,7 +384,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
         Cluster labels for `S1` subjects in `train` data sets. These could have
         been obtained from some ground-truth labelling or via a previous
         iteration of SNF with only the `train` data (e.g., the output of
-        ``snf.compute.spectral_labels`` would be appropriate here).
+        ``spectral_clustering`` would be appropriate here).
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         `snf.compute.affinity_matrix` for more details. Default: 20
@@ -399,7 +402,9 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     """
 
     # check inputs are legit
-    if len(train) != len(test):
+    try:
+        check_consistent_length(train, test)
+    except ValueError:
         raise ValueError('Training and testing set must have same number of '
                          'data types.')
     if not all([len(labels) == len(t) for t in train]):
@@ -409,7 +414,9 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     # generate affinity matrices for stacked train/test data sets
     affinities = []
     for (tr, te) in zip(train, test):
-        if len(tr.T) != len(te.T):
+        try:
+            check_consistent_length(tr.T, te.T)
+        except ValueError:
             raise ValueError('Train and test data must have same number of '
                              'features for each data type. Make sure to '
                              'supply data types in the same order.')
@@ -430,43 +437,6 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     predicted_labels = groups[propogated_labels[len(test[0]):].argmax(axis=1)]
 
     return predicted_labels
-
-
-def nmi(labels):
-    """
-    Calculates normalized mutual information for all combinations of `labels`
-
-    Uses the ``sklearn.metrics.normalized_mutual_info_score`` for calculation;
-    refer to that codebase for information on algorithm.
-
-    Parameters
-    ----------
-    labels : m-length list of (N,) array_like
-        List of label arrays
-
-    Returns
-    -------
-    nmi : (m x m) np.ndarray
-        NMI score for all combinations of `labels`
-
-    Examples
-    --------
-    >>> label1 = np.array([1,1,1,2,2,2])
-    >>> label2 = np.array([1,1,2,2,2,2])
-    >>> nmi([label1, label2])
-    array([[1.        , 0.47913877],
-           [0.47913877, 1.        ]])
-    """
-
-    # create empty array for output
-    nmi = np.empty(shape=(len(labels), len(labels)))
-    # get indices for all combinations of labels and calculate NMI
-    for x, y in np.column_stack(np.triu_indices_from(nmi)):
-        nmi[x, y] = normalized_mutual_info_score(labels[x], labels[y])
-    # make output symmetric
-    nmi = np.triu(nmi) + np.triu(nmi, k=1).T
-
-    return nmi
 
 
 def get_n_clusters(arr, n_clusters=range(2, 6)):
@@ -495,251 +465,13 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     (2, 4)
     """
 
-    from sklearn.decomposition import PCA
-
-    n_clusters = np.asarray(n_clusters)
+    n_clusters = check_array(n_clusters, ensure_2d=False)
     eigenvalue = PCA().fit(arr).singular_values_[:-1]
     eigengap = np.abs(np.diff(eigenvalue))
     eigengap = eigengap * (1 - eigenvalue[:-1]) / (1 - eigenvalue[1:])
     n = eigengap[n_clusters-1].argsort()[::-1]
 
     return n_clusters[n[0]], n_clusters[n[1]]
-
-
-def rank_feature_by_nmi(inputs, W, *, K=20, mu=0.5, n_clusters=None):
-    """
-    Calculates NMI of each feature in `inputs` with `W`
-
-    Parameters
-    ----------
-    inputs : list-of-tuple
-        Each tuple should contain (1) an (N x M) data array, where N is samples
-        M is features, and (2) a string indicating the metric to use to compute
-        a distance matrix for the given data. This MUST be one of the options
-        available in ``scipy.spatial.distance.cdist``.
-    W : (N x N) array_like
-        Similarity array generated by `SNF`
-    K : (0, N) int, optional
-        Hyperparameter normalization factor for scaling. Default: 20
-    mu : (0,1) float, optional
-        Hyperparameter normalization factor for scaling. Default: 0.5
-    n_clusters : int, optional
-        Number of desired clusters. Default: determined by eigengap (see
-        `snf.get_n_clusters()`)
-
-    Returns
-    -------
-    nmi : list of (M,) np.ndarray
-        Normalized mutual information scores for each feature of input arrays
-    """
-
-    if n_clusters is None:
-        n_clusters = get_n_clusters(W)[0]
-    snf_labels = spectral_labels(W, n_clusters)
-    nmi = [np.empty(shape=(d.shape[-1])) for d, m in inputs]
-    for ndtype, (dtype, metric) in enumerate(inputs):
-        for nfeature, feature in enumerate(np.asarray(dtype).T):
-            aff = make_affinity(np.vstack(feature), K=K, mu=mu,
-                                metric=metric)
-            aff_labels = spectral_labels(aff, n_clusters)
-            nmi[ndtype][nfeature] = normalized_mutual_info_score(snf_labels,
-                                                                 aff_labels)
-
-    return nmi
-
-
-def spectral_labels(arr, n_clusters=3, affinity='precomputed'):
-    """
-    Performs spectral clustering on `arr` and returns assigned cluster labels
-
-    Parameters
-    ----------
-    arr : {(N x N), (N x M)} array_like
-        Array to be clustered. Default assumes that the array is an affinity
-        matrix (N x N), where N is samples. If supplying an (N x M) samples by
-        features array, you must also set `affinity`.
-    n_clusters : int, optional
-        Number of clusters in `arr`. Default: 3
-    affinity : str, optional
-        Affinity metric. If `arr` is (N x N), must be 'precomputed' (default).
-        Otherwise, must be one of ['nearest_neighbors', 'rbf', 'sigmoid',
-        'polynomial', 'poly', 'linear', 'cosine'].
-
-    Returns
-    -------
-    labels : (N,) np.ndarray
-        Cluster labels
-    """
-
-    sc = SpectralClustering(n_clusters=n_clusters, affinity=affinity)
-    labels = sc.fit_predict(arr)
-
-    return labels
-
-
-def _silhouette_samples(arr, labels):
-    """
-    Calculates modified silhouette score from affinity matrix
-
-    The Silhouette Coefficient is calculated using the mean intra-cluster
-    affinity (`a`) and the mean nearest-cluster affinity (`b`) for each
-    sample. The Silhouette Coefficient for a sample is `(b - a) / max(a,b)`.
-    To clarify, `b` is the distance between a sample and the nearest cluster
-    that the sample is not a part of. This corresponds to the cluster with the
-    next *highest* affinity (opposite how this metric would be computed for a
-    distance matrix).
-
-    Parameters
-    ----------
-    arr : (N x N) array_like
-        Array of pairwise affinities between samples
-    labels : (N,) array_like
-        Predicted labels for each sample
-
-    Returns
-    -------
-    sil_samples : (N,) np.ndarray
-        Modified (affinity) silhouette scores for each sample
-
-    Notes
-    -----
-    Code is *lightly* modified from the `sklearn` implementation. See:
-    `sklearn.metrics.silhouette_samples`
-
-    References
-    ----------
-    .. [1] `Peter J. Rousseeuw (1987). Silhouettes: a Graphical Aid to the
-       Interpretation and Validation of Cluster Analysis. Computational
-       and Applied Mathematics, 20, 53-65.
-       <http://www.sciencedirect.com/science/article/pii/0377042787901257>`_
-    .. [2] `Wikipedia entry on the Silhouette Coefficient
-       <https://en.wikipedia.org/wiki/Silhouette_(clustering)>`_
-    .. [3] `Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion,
-       B., Grisel, O., ... & Vanderplas, J. (2011). Scikit-learn: Machine
-       learning in Python. Journal of Machine Learning Research, 12, 2825-2830.
-       <https://github.com/scikit-learn/>`_
-    """
-
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.utils import check_X_y
-
-    def check_number_of_labels(n_labels, n_samples):
-        if not 1 < n_labels < n_samples:
-            raise ValueError("Number of labels is %d. Valid values are 2 "
-                             "to n_samples - 1 (inclusive)" % n_labels)
-
-    arr, labels = check_X_y(arr, labels, accept_sparse=['csc', 'csr'])
-    le = LabelEncoder()
-    labels = le.fit_transform(labels)
-    check_number_of_labels(len(le.classes_), arr.shape[0])
-
-    unique_labels = le.classes_
-    n_samples_per_label = np.bincount(labels, minlength=len(unique_labels))
-
-    # For sample i, store the mean distance of the cluster to which
-    # it belongs in intra_clust_dists[i]
-    intra_clust_aff = np.zeros(arr.shape[0], dtype=arr.dtype)
-
-    # For sample i, store the mean distance of the second closest
-    # cluster in inter_clust_dists[i]
-    inter_clust_aff = intra_clust_aff.copy()
-
-    for curr_label in range(len(unique_labels)):
-
-        # Find inter_clust_dist for all samples belonging to the same
-        # label.
-        mask = labels == curr_label
-        current_distances = arr[mask]
-
-        # Leave out current sample.
-        n_samples_curr_lab = n_samples_per_label[curr_label] - 1
-        if n_samples_curr_lab != 0:
-            intra_clust_aff[mask] = np.sum(
-                current_distances[:, mask], axis=1) / n_samples_curr_lab
-
-        # Now iterate over all other labels, finding the mean
-        # cluster distance that is closest to every sample.
-        for other_label in range(len(unique_labels)):
-            if other_label != curr_label:
-                other_mask = labels == other_label
-                other_distances = np.mean(
-                    current_distances[:, other_mask], axis=1)
-                inter_clust_aff[mask] = np.maximum(
-                    inter_clust_aff[mask], other_distances)
-
-    sil_samples = intra_clust_aff - inter_clust_aff
-    sil_samples /= np.maximum(intra_clust_aff, inter_clust_aff)
-
-    # score 0 for clusters of size 1, according to the paper
-    sil_samples[n_samples_per_label.take(labels) == 1] = 0
-
-    return sil_samples
-
-
-def silhouette_score(arr, labels):
-    """
-    Calculates modified silhouette score from affinity matrix
-
-    The Silhouette Coefficient is calculated using the mean intra-cluster
-    affinity (`a`) and the mean nearest-cluster affinity (`b`) for each
-    sample. The Silhouette Coefficient for a sample is `(b - a) / max(a,b)`.
-    To clarify, `b` is the distance between a sample and the nearest cluster
-    that the sample is not a part of. This corresponds to the cluster with the
-    next *highest* affinity (opposite how this metric would be computed for a
-    distance matrix).
-
-    Parameters
-    ----------
-    arr : (N x N) array_like
-        Array of pairwise affinities between samples
-    labels : (N,) array_like
-        Predicted labels for each sample
-
-    Returns
-    -------
-    silhouette_score : float
-        Modified (affinity) silhouette score
-
-    Notes
-    -----
-    Code is *lightly* modified from the ``sklearn`` implementation. See:
-    `sklearn.metrics.silhouette_score`
-    """
-
-    return np.mean(_silhouette_samples(arr, labels))
-
-
-def affinity_zscore(arr, labels, n_perms=1000, seed=None):
-    """
-    Calculates z-score of silhouette (affinity) score by permutation
-
-    Parameters
-    ----------
-    arr : (N x N) array_like
-        Array of pairwise affinities between samples
-    labels : (N,) array_like
-        Predicted labels for each sample
-    n_perms : int, optional
-        Number of permutations. Default: 1000
-    seed : int, optional
-        Random seed. Default: None
-
-    Returns
-    -------
-    z_aff : float
-        Z-score of silhouette (affinity) score
-    """
-
-    if seed is not None:
-        np.random.seed(seed)
-    dist = np.empty(shape=(n_perms,))
-    for perm in range(n_perms):
-        new_labels = np.random.permutation(labels)
-        dist[perm] = silhouette_score(arr, new_labels)
-    true_aff_score = silhouette_score(arr, labels)
-    z_aff = (true_aff_score - dist.mean()) / dist.std()
-
-    return z_aff
 
 
 def dist2(arr1, arr2=None):
@@ -765,21 +497,3 @@ def dist2(arr1, arr2=None):
     dist = cdist(arr1, arr2, metric='sqeuclidean')
 
     return dist
-
-
-def chi_square_distance(arr1, arr2):
-    """
-    Computes chi-squared distance between `arr1` and `arr2`
-
-    Parameters
-    ----------
-    arr1, arr2 : (N x M) array_like
-        Input matrices. Can differ on `N` but `M` must be the same.
-
-    Returns
-    -------
-    chisqd : (N x N) np.ndarray
-        Chi-squared distance matrix
-    """
-
-    raise NotImplementedError
