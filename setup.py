@@ -24,6 +24,8 @@ def main():
         version=ldict['VERSION'],
         description=ldict['DESCRIPTION'],
         maintainer=ldict['MAINTAINER'],
+        maintainer_email=ldict['EMAIL'],
+        url=ldict['URL'],
         download_url=ldict['DOWNLOAD_URL'],
         install_requires=ldict['INSTALL_REQUIRES'],
         packages=find_packages(exclude=['snf/tests']),

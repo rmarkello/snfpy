@@ -1,11 +1,16 @@
-__version__ = '0.0.1'
+__version__ = '0.1'
 
-NAME = 'snf'
+NAME = 'snfpy'
 MAINTAINER = 'Ross Markello'
+EMAIL = 'rossmarkello@gmail.com'
 VERSION = __version__
 LICENSE = 'GLPLv3'
 DESCRIPTION = 'A toolbox for Similarity Network Fusion (SNF)'
-DOWNLOAD_URL = 'http://github.com/rmarkello/snfpy'
+URL = 'http://github.com/rmarkello/snfpy'
+
+DOWNLOAD_URL = (
+    'https://github.com/rmarkello/snfpy/archive/{ver}.tar.gz'.format(
+        ver=__version__))
 
 INSTALL_REQUIRES = [
     'numpy',
@@ -19,5 +24,5 @@ TESTS_REQUIRE = [
 ]
 
 PACKAGE_DATA = {
-     'snf': ['tests/data/*']
+     'snfpy': ['tests/data/*']
 }
