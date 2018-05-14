@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from snf import compute as _compute
-from snf import plotting as _plotting
+from snf import compute, plotting, metrics
 
-affinityMatrix = _compute.affinity_matrix
-B0normalized = _compute._B0_normalized
-Cal_NMI = _compute.normalized_mutual_info_score
-Concordance_Network_NMI = _compute.nmi
-displayClusters = _plotting.mod_heatmap
-dist2 = _compute.dist2
-Estimate_Number_of_Clusters_given_graph = _compute.get_n_clusters
-FindDominateSet = _compute._find_dominate_set
-SNF = _compute.SNF
-SpectralClustering = _compute.spectral_labels
-Standard_Normalization = _compute.scipy.stats.zscore
+affinityMatrix = compute.affinity_matrix
+B0normalized = compute._B0_normalized
+Cal_NMI = metrics.normalized_mutual_info_score
+Concordance_Network_NMI = metrics.nmi
+displayClusters = plotting.mod_heatmap
+dist2 = compute.dist2
+Estimate_Number_of_Clusters_given_graph = compute.get_n_clusters
+FindDominateSet = compute._find_dominate_set
+SNF = compute.SNF
+SpectralClustering = compute.spectral_clustering
+Standard_Normalization = compute.scipy.stats.zscore
