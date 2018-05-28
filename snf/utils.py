@@ -52,7 +52,7 @@ def get_neighbors(x, y, neighbors='edges', shape=None):
     keep = np.logical_and(xinds >= 0, yinds >= 0)
     if shape is not None:
         keep = np.logical_and(keep, np.logical_and(xinds < shape[0],
-                                                   yinds < shape[0]))
+                                                   yinds < shape[1]))
 
     return xinds[keep], yinds[keep]
 
@@ -78,7 +78,7 @@ def extract_max_inds(grid, axis=-1):
     shape = np.delete(np.asarray(grid.shape), axis)
 
     # get indices to index maximum values along `axis`
-    iind = np.meshgrid(*(range(f) for f in shape))
+    iind = np.meshgrid(*(range(f) for f in shape[::-1]))
     if len(iind) > 1:
         iind = [iind[1], iind[0], *iind[2:]]
     imax = grid.argmax(axis=axis)
