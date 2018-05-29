@@ -49,7 +49,7 @@ def test_extract_max_inds():
 def test_zrand():
     # make the same two-group community assignments (with different labels)
     label = np.ones((100, 1))
-    X, Y = np.vstack((label, label*2)), np.vstack((label*2, label))
+    X, Y = np.vstack((label, label * 2)), np.vstack((label * 2, label))
     # compare
     assert utils.zrand(X, Y) == utils.zrand(X, Y[::-1])
     assert utils.zrand(X, Y) > utils.zrand(X, rs.choice([0, 1], size=X.shape))
@@ -72,4 +72,4 @@ def test_zrand_convolve():
     # random grid of community labels, testing against diff neighbor cases
     grid = rs.choice(range(6), size=(10, 10, 100))
     for neighbors in ['edges', 'corners']:
-        utils.zrand_convolve(grid,  neighbors=neighbors)
+        utils.zrand_convolve(grid, neighbors=neighbors)

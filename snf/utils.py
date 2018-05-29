@@ -36,7 +36,8 @@ def get_neighbors(x, y, neighbors='edges', shape=None):
     """
 
     # make mesh grid
-    xinds, yinds = np.meshgrid(np.arange(x-1, x+2), np.arange(y-1, y+2))
+    xinds, yinds = np.meshgrid(np.arange(x - 1, x + 2),
+                               np.arange(y - 1, y + 2))
 
     # extract neighbors, as appropriate
     if neighbors == 'edges':

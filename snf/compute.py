@@ -14,7 +14,6 @@ import numpy as np
 from scipy.sparse import diags
 from scipy.spatial.distance import cdist
 import scipy.stats
-from sklearn.cluster import spectral_clustering
 from sklearn.decomposition import PCA
 from sklearn.utils.validation import (check_array, check_symmetric,
                                       check_consistent_length)
@@ -147,7 +146,7 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
     sigma = (sigma * (sigma > np.spacing(1))) + np.spacing(1)
 
     # get probability density function with scale mu*sigma and symmetrize
-    W = scipy.stats.norm.pdf(dist, loc=0, scale=mu*sigma)
+    W = scipy.stats.norm.pdf(dist, loc=0, scale=mu * sigma)
     W = check_symmetric(W)
 
     return W
@@ -469,7 +468,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     eigenvalue = PCA().fit(arr).singular_values_[:-1]
     eigengap = np.abs(np.diff(eigenvalue))
     eigengap = eigengap * (1 - eigenvalue[:-1]) / (1 - eigenvalue[1:])
-    n = eigengap[n_clusters-1].argsort()[::-1]
+    n = eigengap[n_clusters - 1].argsort()[::-1]
 
     return n_clusters[n[0]], n_clusters[n[1]]
 

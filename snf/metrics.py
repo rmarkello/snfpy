@@ -11,6 +11,7 @@ Code for implementing Similarity Network Fusion.
 """
 
 import numpy as np
+from sklearn.cluster import spectral_clustering
 from sklearn.metrics import normalized_mutual_info_score
 from snf import compute
 
@@ -81,13 +82,13 @@ def rank_feature_by_nmi(inputs, W, *, K=20, mu=0.5, n_clusters=None):
 
     if n_clusters is None:
         n_clusters = compute.get_n_clusters(W)[0]
-    snf_labels = compute.spectral_clustering(W, n_clusters)
+    snf_labels = spectral_clustering(W, n_clusters)
     nmi = [np.empty(shape=(d.shape[-1])) for d, m in inputs]
     for ndtype, (dtype, metric) in enumerate(inputs):
         for nfeature, feature in enumerate(np.asarray(dtype).T):
             aff = compute.make_affinity(np.vstack(feature), K=K, mu=mu,
                                         metric=metric)
-            aff_labels = compute.spectral_clustering(aff, n_clusters)
+            aff_labels = spectral_clustering(aff, n_clusters)
             nmi[ndtype][nfeature] = normalized_mutual_info_score(snf_labels,
                                                                  aff_labels)
 

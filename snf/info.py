@@ -24,5 +24,5 @@ TESTS_REQUIRE = [
 ]
 
 PACKAGE_DATA = {
-     'snfpy': ['tests/data/*']
+    'snfpy': ['tests/data/*']
 }
