@@ -30,13 +30,13 @@ def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
         Raw data array, where `N` is samples and `M` is features
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
-        ``snf.compute.affinity_matrix`` for more details. Default: 20
+        ``snf.affinity_matrix`` for more details. Default: 20
     mu : (0,1) float, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
-        ``snf.compute.affinity_matrix`` for more details. Default: 0.5
+        ``snf.affinity_matrix`` for more details. Default: 0.5
     metric : str, optional
         Distance metric to compute. Must be one of available metrics in
-        ``scipy.spatial.distance.cdist``. Default: 'sqeuclidean'
+        ``scipy.spatial.distance.pdist``. Default: 'sqeuclidean'
     normalize : bool, optional
         Whether to normalize (i.e., zscore) `arr` before constructing the
         affinity matrix. Each feature (i.e., column) is normalized separately.
@@ -50,19 +50,20 @@ def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
     Examples
     --------
     >>> data = np.loadtxt('data1.csv')
-    >>> data.shape
-    (200, 2)
     >>> aff = make_affinity(data, K=20, mu=0.5, metric='sqeuclidean')
     >>> aff.shape
     (200, 200)
     """
 
-    # normalize data using ddof=1 for stdev calculation and convert NaNs
+    # normalize data, taking into account potentially missing data
     if normalize:
-        arr = np.nan_to_num(scipy.stats.zscore(arr, ddof=1))
+        mask = np.isnan(arr).all(axis=1)
+        zarr = np.zeros_like(arr)
+        zarr[mask] = np.nan
+        zarr[~mask] = np.nan_to_num(scipy.stats.zscore(arr[~mask], ddof=1))
 
     # construct distance matrix using `metric` and make affinity matrix
-    distance = cdist(arr, arr, metric=metric)
+    distance = cdist(zarr, zarr, metric=metric)
     affinity = affinity_matrix(distance, K=K, mu=mu)
 
     return affinity
@@ -123,15 +124,17 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
     --------
     >>> data = np.loadtxt('data1.csv')
     >>> dist = cdist(data, data, metric='euclidean')
-    >>> dist.shape
-    (200, 200)
     >>> aff = affinity_matrix(dist)
     >>> aff.shape
     (200, 200)
     """
 
-    # if distance matrix is directed, symmetrize based on average of weights
-    dist = check_symmetric(check_array(dist))
+    # ensure inputs appropriate
+    dist = check_array(dist, force_all_finite=False)
+    dist = check_symmetric(dist, raise_warning=False)
+
+    # get mask for potential NaN values and set diagonals zero
+    mask = np.isnan(dist)
     dist[np.diag_indices_from(dist)] = 0
 
     # sort array and get average distance to K nearest neighbors
@@ -140,11 +143,14 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
 
     # compute sigma (see equation in Notes)
     sigma = (TT + TT.T + dist) / 3
-    sigma = (sigma * (sigma > np.spacing(1))) + np.spacing(1)
+    msigma = np.ma.array(sigma, mask=mask)  # mask for NaN
+    sigma = sigma * np.ma.greater(msigma, np.spacing(1)).data + np.spacing(1)
 
     # get probability density function with scale mu*sigma and symmetrize
-    W = scipy.stats.norm.pdf(dist, loc=0, scale=mu * sigma)
-    W = check_symmetric(W)
+    scale = (mu * np.nan_to_num(sigma)) + mask
+    W = scipy.stats.norm.pdf(np.nan_to_num(dist), loc=0, scale=scale)
+    W[mask] = np.nan
+    W = check_symmetric(W, raise_warning=False)
 
     return W
 
@@ -168,7 +174,7 @@ def _find_dominate_set(W, K=20):
     I1 = ((IW1[:, :K] * m) + np.vstack(np.arange(n))).flatten(order='F')
     newW[I1] = W.flatten(order='F')[I1]
     newW = newW.reshape(W.shape, order='F')
-    newW = newW / newW.sum(axis=1)[:, np.newaxis]
+    newW = newW / np.nansum(newW, axis=1)[:, np.newaxis]
 
     return newW
 
@@ -176,6 +182,8 @@ def _find_dominate_set(W, K=20):
 def _B0_normalized(W, alpha=1.0):
     """
     Normalizes `W` so that subjects are always most similar to themselves
+
+    Adds `alpha` to the diagonal of `W`
 
     Parameters
     ----------
@@ -188,7 +196,7 @@ def _B0_normalized(W, alpha=1.0):
     Returns
     -------
     W : (N x N) np.ndarray
-        "Normalized" similiarity array
+        Normalized similiarity array
     """
 
     # add `alpha` to the diagonal and symmetrize `W`
@@ -235,7 +243,7 @@ def SNF(aff, *, K=20, t=20, alpha=1.0):
          \\end{array}\\right.
 
     Under the assumption that local similarities are more important than
-    distant ones, we also calculate a more sparse weight matrix based on a KNN
+    distant ones, a more sparse weight matrix is calculated based on a KNN
     framework:
 
     .. math::
@@ -264,37 +272,60 @@ def SNF(aff, *, K=20, t=20, alpha=1.0):
                            v = 1, 2, ..., m
 
     After each iteration, the resultant matrices are normalized via the
-    normalization equation above. Fusion stops after `t` iterations, or when
-    the matrices :math:`\\mathbf{P}^{(v)}, v = 1, 2, ..., m` converge.
+    equation above. Fusion stops after `t` iterations, or when the matrices
+    :math:`\\mathbf{P}^{(v)}, v = 1, 2, ..., m` converge.
 
     The output fused matrix is full rank and can be subjected to clustering and
     classification.
     """
 
-    aff = [check_symmetric(check_array(a)) for a in aff]
-    check_consistent_length(*aff)
+    aff = _check_SNF_inputs(aff)
+    nW, aff0 = [0] * len(aff), [0] * len(aff)
+    Wsum = np.zeros((aff[0].shape))
 
-    m, n = aff[0].shape
-    newW, aff0 = [0] * len(aff), [0] * len(aff)
-    Wsum = np.zeros((m, n))
+    # get number of modalities informing each subject x subject affinity
+    n_aff = len(aff) - np.sum([np.isnan(a) for a in aff], axis=0)
 
     for i in range(len(aff)):
-        aff[i] = aff[i] / aff[i].sum(axis=1)[:, np.newaxis]
+        aff[i] = aff[i] / np.nansum(aff[i], axis=1)[:, np.newaxis]  # TODO: NaN
         aff[i] = check_symmetric(aff[i], raise_warning=False)
-        newW[i] = _find_dominate_set(aff[i], round(K))
-    Wsum = np.sum(aff, axis=0)
+        nW[i] = _find_dominate_set(aff[i], round(K))
+    Wsum = np.nansum(aff, axis=0)
 
     for iteration in range(t):
         for i in range(len(aff)):
-            aff0[i] = newW[i] @ (Wsum - aff[i]) @ newW[i].T / (len(aff) - 1)
+            # temporarily convert nans to 0 for propagation step
+            nzW, aw = np.nan_to_num(nW[i]), np.nan_to_num(aff[i])
+            aff0[i] = nzW @ (Wsum - aw) @ nzW.T / (n_aff - 1)  # TODO: / by 0
             aff[i] = _B0_normalized(aff0[i], alpha=alpha)
-        Wsum = np.sum(aff, axis=0)
+        Wsum = np.nansum(aff, axis=0)
 
     W = Wsum / len(aff)
-    W = W / W.sum(axis=1)[:, np.newaxis]
-    W = (W + W.T + np.eye(n)) / 2
+    W = W / np.nansum(W, axis=1)[:, np.newaxis]  # TODO: NaN
+    W = (W + W.T + np.eye(len(W))) / 2
 
     return W
+
+
+def _check_SNF_inputs(aff):
+    """
+    Confirms inputs to SNF are appropriate
+
+    Parameters
+    ----------
+    aff : `m`-list of (N x N) array_like
+        Input similarity arrays. All arrays should be square and of equal size.
+    """
+
+    aff = [check_array(a, force_all_finite=False) for a in aff]
+    aff = [check_symmetric(a, raise_warning=False) for a in aff]
+    check_consistent_length(*aff)
+
+    nanaff = len(aff) - np.sum([np.isnan(a) for a in aff], axis=0)
+    if np.any(nanaff == 0):
+        pass
+
+    return aff
 
 
 def _label_prop(W, Y, *, t=1000):
@@ -349,8 +380,8 @@ def _dnorm(W, norm='ave'):
     """
 
     if norm not in ['ave', 'gph']:
-        raise ValueError('`norm` must be in [\'ave\', \'gph\']. Provided '
-                         'value is: {}'.format(norm))
+        raise ValueError('Provided `norm` {} not in [\'ave\', \'gph\'].'
+                         .format(norm))
 
     D = W.sum(axis=1) + np.spacing(1)
 
@@ -383,10 +414,10 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
         ``spectral_clustering`` would be appropriate here).
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
-        `snf.compute.affinity_matrix` for more details. Default: 20
+        `snf.affinity_matrix` for more details. Default: 20
     mu : (0,1) float, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
-        `snf.compute.affinity_matrix` for more details. Default: 0.5
+        `snf.affinity_matrix` for more details. Default: 0.5
     t : int, optional
         Number of iterations to perform information swapping during SNF.
         Default: 20
@@ -470,7 +501,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     return n_clusters[n[0]], n_clusters[n[1]]
 
 
-def dist2(arr1, arr2=None):
+def dist2(arr):
     """
     Wrapper of `cdist` with squared euclidean as distance metric
 
@@ -479,8 +510,8 @@ def dist2(arr1, arr2=None):
 
     Parameters
     ----------
-    arr1, arr2 : (N x M) array_like
-        Input matrices. Can differ on N, but M *must* be the same.
+    arr : (N x M) array_like
+        Input matrix.
 
     Returns
     -------
@@ -488,8 +519,4 @@ def dist2(arr1, arr2=None):
         Squared euclidean distance matrix
     """
 
-    if arr2 is None:
-        arr2 = np.array(arr1).copy()
-    dist = cdist(arr1, arr2, metric='sqeuclidean')
-
-    return dist
+    return cdist(arr, arr, metric='sqeuclidean')
