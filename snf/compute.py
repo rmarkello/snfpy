@@ -16,7 +16,7 @@ from sklearn.utils.validation import (check_array, check_symmetric,
                                       check_consistent_length)
 
 
-def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
+def make_affinity(arr, metric='sqeuclidean', *, K=20, mu=0.5, normalize=True):
     """
     Constructs affinity (i.e., similarity) matrix given feature matrix `arr`
 
@@ -26,17 +26,20 @@ def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
 
     Parameters
     ----------
-    arr : (N x M) array_like
-        Raw data array, where `N` is samples and `M` is features
+    arr : (N x M) array_like or list-of-array_like
+        Raw data array, where `N` is samples and `M` is features. If a list is
+        provided then affinity matrices will be generated for each array in the
+        list.
+    metric : str or list-of-str, optional
+        Distance metric to compute. Must be one of available metrics in
+        ``scipy.spatial.distance.pdist``. If a list is provided for `arr` a
+        list of equal length may be supplied here. Default: 'sqeuclidean'
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         ``snf.affinity_matrix`` for more details. Default: 20
     mu : (0,1) float, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         ``snf.affinity_matrix`` for more details. Default: 0.5
-    metric : str, optional
-        Distance metric to compute. Must be one of available metrics in
-        ``scipy.spatial.distance.pdist``. Default: 'sqeuclidean'
     normalize : bool, optional
         Whether to normalize (i.e., zscore) `arr` before constructing the
         affinity matrix. Each feature (i.e., column) is normalized separately.
@@ -44,8 +47,8 @@ def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
 
     Returns
     -------
-    affinity : (N x N) np.ndarray
-        Affinity matrix
+    affinity : (N x N) np.ndarray or list-of-np.ndarray
+        Affinity matrix (or matrices, if `arr` is a list)
 
     Examples
     --------
@@ -55,16 +58,33 @@ def make_affinity(arr, *, K=20, mu=0.5, metric='sqeuclidean', normalize=True):
     (200, 200)
     """
 
-    # normalize data, taking into account potentially missing data
-    if normalize:
-        mask = np.isnan(arr).all(axis=1)
-        zarr = np.zeros_like(arr)
-        zarr[mask] = np.nan
-        zarr[~mask] = np.nan_to_num(scipy.stats.zscore(arr[~mask], ddof=1))
+    # check input arrays and metrics
+    if isinstance(arr, list):
+        inputs = [check_array(a, force_all_finite=False) for a in arr]
+        check_consistent_length(*inputs)
+        if not isinstance(metric, list):
+            metrics = [metric for i in range(len(inputs))]
+    else:
+        inputs = [check_array(arr, force_all_finite=False)]
+        metrics = [metric[0]] if isinstance(metric, list) else [metric]
+    check_consistent_length(inputs, metrics)
 
-    # construct distance matrix using `metric` and make affinity matrix
-    distance = cdist(zarr, zarr, metric=metric)
-    affinity = affinity_matrix(distance, K=K, mu=mu)
+    affinity = []
+    for inp, met in zip(inputs, metrics):
+        # normalize data, taking into account potentially missing data
+        if normalize:
+            mask = np.isnan(inp).all(axis=1)
+            zarr = np.zeros_like(inp)
+            zarr[mask] = np.nan
+            zarr[~mask] = np.nan_to_num(scipy.stats.zscore(inp[~mask], ddof=1))
+
+        # construct distance matrix using `metric` and make affinity matrix
+        distance = cdist(zarr, zarr, metric=met)
+        affinity += [affinity_matrix(distance, K=K, mu=mu)]
+
+    # if only one input don't return a list
+    if len(affinity) == 1:
+        affinity = affinity[0]
 
     return affinity
 
@@ -174,7 +194,7 @@ def _find_dominate_set(W, K=20):
     I1 = ((IW1[:, :K] * m) + np.vstack(np.arange(n))).flatten(order='F')
     newW[I1] = W.flatten(order='F')[I1]
     newW = newW.reshape(W.shape, order='F')
-    newW = newW / np.nansum(newW, axis=1)[:, np.newaxis]
+    newW = newW / np.nansum(newW, axis=1)[:, None]  # TODO: / by NaN
 
     return newW
 
@@ -287,21 +307,21 @@ def SNF(aff, *, K=20, t=20, alpha=1.0):
     n_aff = len(aff) - np.sum([np.isnan(a) for a in aff], axis=0)
 
     for i in range(len(aff)):
-        aff[i] = aff[i] / np.nansum(aff[i], axis=1)[:, np.newaxis]  # TODO: NaN
+        aff[i] = aff[i] / np.nansum(aff[i], axis=1)[:, None]  # TODO: / by NaN
         aff[i] = check_symmetric(aff[i], raise_warning=False)
         nW[i] = _find_dominate_set(aff[i], round(K))
     Wsum = np.nansum(aff, axis=0)
 
     for iteration in range(t):
         for i in range(len(aff)):
-            # temporarily convert nans to 0 for propagation step
+            # temporarily convert nans to 0 to avoid propagation errors
             nzW, aw = np.nan_to_num(nW[i]), np.nan_to_num(aff[i])
             aff0[i] = nzW @ (Wsum - aw) @ nzW.T / (n_aff - 1)  # TODO: / by 0
             aff[i] = _B0_normalized(aff0[i], alpha=alpha)
         Wsum = np.nansum(aff, axis=0)
 
     W = Wsum / len(aff)
-    W = W / np.nansum(W, axis=1)[:, np.newaxis]  # TODO: NaN
+    W = W / np.nansum(W, axis=1)[:, None]  # TODO: / by NaN
     W = (W + W.T + np.eye(len(W))) / 2
 
     return W
