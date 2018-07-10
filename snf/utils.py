@@ -11,8 +11,16 @@ Utilities for implementing Similarity Network Fusion.
 """
 
 from itertools import combinations
+from multiprocessing import cpu_count
 import numpy as np
+from sklearn.externals.joblib import Parallel, delayed
 from sklearn.utils.extmath import cartesian
+
+try:
+    from numba import jit, float64
+    use_numba = True
+except ImportError:
+    use_numba = False
 
 
 def get_neighbors(x, y, neighbors='edges', shape=None):
@@ -115,29 +123,19 @@ def zrand(X, Y):
        <https://arxiv.org/abs/0809.0690>`_
     """
 
-    def dummyvar(i):
-        return np.column_stack([i == grp for grp in np.unique(i)]).astype(int)
-
-    # we need 2d arrays for this to work; shape (n,1)
-    X, Y = np.atleast_2d(X), np.atleast_2d(Y)
-    if X.shape[0] < X.shape[1]:
-        X = X.T
-    if Y.shape[0] < Y.shape[1]:
-        Y = Y.T
-    n = X.shape[0]
-
-    indx, indy = dummyvar(X), dummyvar(Y)
-    Xa, Ya = indx @ indx.T, indy @ indy.T
+    Xa = X @ X.T
+    Ya = Y @ Y.T
+    n = Xa.shape[0]
 
     M = n * (n - 1) / 2
     M1 = Xa.nonzero()[0].size / 2
     M2 = Ya.nonzero()[0].size / 2
 
-    wab = np.logical_and(Xa, Ya).nonzero()[0].size / 2
+    wab = (Xa + Ya == 2).nonzero()[0].size / 2
 
     mod = n * (n**2 - 3 * n - 2)
-    C1 = mod - (8 * (n + 1) * M1) + (4 * np.power(indx.sum(0), 3).sum())
-    C2 = mod - (8 * (n + 1) * M2) + (4 * np.power(indy.sum(0), 3).sum())
+    C1 = mod - (8 * (n + 1) * M1) + (4 * np.power(X.sum(0), 3).sum())
+    C2 = mod - (8 * (n + 1) * M2) + (4 * np.power(Y.sum(0), 3).sum())
 
     a = M / 16
     b = ((4 * M1 - 2 * M)**2) * ((4 * M2 - 2 * M)**2) / (256 * (M**2))
@@ -155,7 +153,30 @@ def zrand(X, Y):
     return z_rand
 
 
-def zrand_partitions(communities):
+if use_numba:
+    sig = float64(float64[:, :], float64[:, :])
+    zrand = jit(sig, nopython=True, nogil=True)(zrand)
+
+
+def _dummyvar(i):
+    """
+    Converts input to dummy-coded array
+
+    Parameters
+    ----------
+    i : (n, 1) array_like
+        Community assignment vector
+
+    Returns
+    -------
+    dummy : (n x g) array_like
+        Dummy-coded community assignment vector
+    """
+
+    return np.array([i == grp for grp in np.unique(i)], dtype=float).T
+
+
+def zrand_partitions(communities, n_procs=None):
     """
     Calculates average and std of z-Rand for all pairs of community assignments
 
@@ -176,17 +197,22 @@ def zrand_partitions(communities):
         Standard deviation of z-Rand over pairs of community assignments
     """
 
-    # TODO: parallelize this
-    all_zrand = [zrand(f[0][:, None], f[1][:, None]) for f in
-                 combinations(communities.T, 2)]
+    if n_procs is None:
+        n_procs = cpu_count()
+
+    communities = combinations([_dummyvar(i) for i in communities.T], 2)
+    all_zrand = Parallel(n_jobs=n_procs)(
+        delayed(zrand)(f1, f2)
+        for (f1, f2) in communities
+    )
     zrand_avg, zrand_std = np.nanmean(all_zrand), np.nanstd(all_zrand)
 
     return zrand_avg, zrand_std
 
 
-def zrand_convolve(labelgrid, neighbors='edges'):
+def zrand_convolve(grid, neighbors='edges'):
     """
-    Calculates the avg and std z-Rand index using kernel over `labelgrid`
+    Calculates the avg and std z-Rand index using kernel over `grid`
 
     Kernel is determined by `neighbors`, which can include all entries with
     touching edges (i.e., 4 neighbors) or corners (i.e., 8 neighbors).
@@ -209,10 +235,10 @@ def zrand_convolve(labelgrid, neighbors='edges'):
         Array containing standard deviation of the z-Rand index
     """
 
-    inds = cartesian([range(labelgrid.shape[0]), range(labelgrid.shape[1])])
-    zrand = np.empty(shape=labelgrid.shape[:-1] + (2,))
+    inds = cartesian([range(grid.shape[0]), range(grid.shape[1])])
+    zrand = np.empty(shape=grid.shape[:-1] + (2,))
     for x, y in inds:
-        ninds = get_neighbors(x, y, neighbors=neighbors, shape=labelgrid.shape)
-        zrand[x, y] = zrand_partitions(labelgrid[ninds].T)
+        ninds = get_neighbors(x, y, neighbors=neighbors, shape=grid.shape)
+        zrand[x, y] = zrand_partitions(grid[ninds].T)
 
     return zrand[..., 0], zrand[..., 1]
