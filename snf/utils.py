@@ -11,9 +11,7 @@ Utilities for implementing Similarity Network Fusion.
 """
 
 from itertools import combinations
-from multiprocessing import cpu_count
 import numpy as np
-from sklearn.externals.joblib import Parallel, delayed
 from sklearn.utils.extmath import cartesian
 
 try:
@@ -176,7 +174,7 @@ def _dummyvar(i):
     return np.array([i == grp for grp in np.unique(i)], dtype=float).T
 
 
-def zrand_partitions(communities, n_procs=None):
+def zrand_partitions(communities):
     """
     Calculates average and std of z-Rand for all pairs of community assignments
 
@@ -197,14 +195,8 @@ def zrand_partitions(communities, n_procs=None):
         Standard deviation of z-Rand over pairs of community assignments
     """
 
-    if n_procs is None:
-        n_procs = cpu_count()
-
     communities = combinations([_dummyvar(i) for i in communities.T], 2)
-    all_zrand = Parallel(n_jobs=n_procs)(
-        delayed(zrand)(f1, f2)
-        for (f1, f2) in communities
-    )
+    all_zrand = [zrand(f1, f2) for (f1, f2) in communities]
     zrand_avg, zrand_std = np.nanmean(all_zrand), np.nanstd(all_zrand)
 
     return zrand_avg, zrand_std
