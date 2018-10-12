@@ -177,8 +177,8 @@ def zrand_partitions(communities):
     """
 
     # TODO: parallelize this
-    all_zrand = [zrand(f[0][:, None], f[1][:, None]) for f in
-                 combinations(communities.T, 2)]
+    all_zrand = [zrand(x[:, np.newaxis], y[:, np.newaxis])
+                 for (x, y) in combinations(communities.T, 2)]
     zrand_avg, zrand_std = np.nanmean(all_zrand), np.nanstd(all_zrand)
 
     return zrand_avg, zrand_std
