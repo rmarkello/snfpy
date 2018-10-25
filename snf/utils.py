@@ -144,10 +144,11 @@ def zrand(X, Y):
        <https://arxiv.org/abs/0809.0690>`_
     """
 
-    X, Y = np.squeeze(X), np.squeeze(Y)
     if X.ndim > 1 or Y.ndim > 1:
-        raise ValueError('X and Y must have only one-dimension each. Please '
-                         'check inputs. X: {}; Y: {}'.format(X.ndim, Y.ndim))
+        if X.shape[-1] > 1 or Y.shape[-1] > 1:
+            raise ValueError('X and Y must have only one-dimension each. '
+                             'Please check inputs.')
+    X, Y = X.flatten(), Y.flatten()
 
     n = len(X)
     indx, indy = _dummyvar(X), _dummyvar(Y)
@@ -206,7 +207,7 @@ def zrand_partitions(communities):
 
     for c1 in prange(n_partitions):
         for c2 in prange(c1 + 1, n_partitions):
-            idx = (c1 * n_partitions) + c2 - ((c1 + 1) * (c1 + 2) // 2)
+            idx = int((c1 * n_partitions) + c2 - ((c1 + 1) * (c1 + 2) // 2))
             all_zrand[idx] = zrand(communities[:, c1], communities[:, c2])
 
     return np.nanmean(all_zrand), np.nanstd(all_zrand)
