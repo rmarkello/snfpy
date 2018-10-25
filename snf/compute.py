@@ -16,20 +16,45 @@ from sklearn.utils.validation import (check_array, check_symmetric,
                                       check_consistent_length)
 
 
-def make_affinity(arr, metric='sqeuclidean', *, K=20, mu=0.5, normalize=True):
+def _check_data_metric(data, metric):
     """
-    Constructs affinity (i.e., similarity) matrix given feature matrix `arr`
+    Confirms inputs to `make_affinity()` are appropriate
 
-    Performs columnwise normalization on `arr`, computes distance matrix based
+    Parameters
+    ----------
+    data : (F,) list of (M, N) array_like
+        Input data arrays. All arrays should have same first dimension
+    metric : str or (F,) list of str
+        Input distance metrics. If provided as a list, should be the same
+        length as `data`
+    """
+    # check input arrays and metrics
+    if isinstance(data, (list, tuple)):
+        data = [check_array(a, force_all_finite=False) for a in data]
+        check_consistent_length(*data)
+        if not isinstance(metric, list):
+            metric = [metric for i in range(len(data))]
+    else:
+        data = [check_array(data, force_all_finite=False)]
+        metric = [metric[0]] if isinstance(metric, list) else [metric]
+    check_consistent_length(data, metric)
+
+    return data, metric
+
+
+def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
+    """
+    Constructs affinity (i.e., similarity) matrix from `data`
+
+    Performs columnwise normalization on `data`, computes distance matrix based
     on provided `metric`, and then constructs affinity matrix by calling
     `affinity_matrix()`
 
     Parameters
     ----------
-    arr : (N x M) array_like or list-of-array_like
-        Raw data array, where `N` is samples and `M` is features. If a list is
-        provided then affinity matrices will be generated for each array in the
-        list.
+    *data : (N, M) array_like
+        Raw data array, where `N` is samples and `M` is features. If multiple
+        arrays are provided then affinity matrices will be generated for each.
     metric : str or list-of-str, optional
         Distance metric to compute. Must be one of available metrics in
         ``scipy.spatial.distance.pdist``. If a list is provided for `arr` a
@@ -37,7 +62,7 @@ def make_affinity(arr, metric='sqeuclidean', *, K=20, mu=0.5, normalize=True):
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         ``snf.affinity_matrix`` for more details. Default: 20
-    mu : (0,1) float, optional
+    mu : (0, 1) float, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         ``snf.affinity_matrix`` for more details. Default: 0.5
     normalize : bool, optional
@@ -47,7 +72,7 @@ def make_affinity(arr, metric='sqeuclidean', *, K=20, mu=0.5, normalize=True):
 
     Returns
     -------
-    affinity : (N x N) np.ndarray or list-of-np.ndarray
+    affinity : (N, N) np.ndarray or list-of-np.ndarray
         Affinity matrix (or matrices, if `arr` is a list)
 
     Examples
@@ -58,16 +83,7 @@ def make_affinity(arr, metric='sqeuclidean', *, K=20, mu=0.5, normalize=True):
     (200, 200)
     """
 
-    # check input arrays and metrics
-    if isinstance(arr, list):
-        inputs = [check_array(a, force_all_finite=False) for a in arr]
-        check_consistent_length(*inputs)
-        if not isinstance(metric, list):
-            metrics = [metric for i in range(len(inputs))]
-    else:
-        inputs = [check_array(arr, force_all_finite=False)]
-        metrics = [metric[0]] if isinstance(metric, list) else [metric]
-    check_consistent_length(inputs, metrics)
+    inputs, metrics = _check_data_metric(data, metric)
 
     affinity = []
     for inp, met in zip(inputs, metrics):
@@ -103,16 +119,16 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
 
     Parameters
     ----------
-    dist : (N x N) array_like
+    dist : (N, N) array_like
         Distance matrix
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. Default: 20
-    mu : (0,1) float, optional
+    mu : (0, 1) float, optional
         Hyperparameter normalization factor for scaling. Default: 0.5
 
     Returns
     -------
-    W : (N x N) np.ndarray
+    W : (N, N) np.ndarray
         Affinity matrix
 
     Notes
@@ -179,13 +195,13 @@ def _find_dominate_set(W, K=20):
     """
     Parameters
     ----------
-    W : (N x N) array_like
+    W : (N, N) array_like
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. Default: 20
 
     Returns
     -------
-    newW : (N x N) np.ndarray
+    newW : (N, N) np.ndarray
     """
 
     m, n = W.shape
@@ -207,15 +223,15 @@ def _B0_normalized(W, alpha=1.0):
 
     Parameters
     ----------
-    W : (N x N) array_like
+    W : (N, N) array_like
         Similarity array from SNF
-    alpha : (0,1) float, optional
+    alpha : (0, 1) float, optional
         Factor to add to diagonal of `W` to increase subject self-affinity.
         Default: 1.0
 
     Returns
     -------
-    W : (N x N) np.ndarray
+    W : (N, N) np.ndarray
         Normalized similiarity array
     """
 
@@ -226,24 +242,24 @@ def _B0_normalized(W, alpha=1.0):
     return W
 
 
-def SNF(aff, *, K=20, t=20, alpha=1.0):
-    r"""
+def SNF(*aff, K=20, t=20, alpha=1.0):
+    """
     Performs Similarity Network Fusion on `aff` matrices
 
     Parameters
     ----------
-    aff : `m`-list of (N x N) array_like
-        Input similarity arrays. All arrays should be square and of equal size.
+    *aff : (N, N) array_like
+        Input similarity arrays; all arrays should be square and of equal size.
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. Default: 20
     t : int, optional
         Number of iterations to perform information swapping. Default: 20
-    alpha : (0,1) float, optional
+    alpha : (0, 1) float, optional
         Hyperparameter normalization factor for scaling. Default: 1.0
 
     Returns
     -------
-    W: (N x N) np.ndarray
+    W: (N, N) np.ndarray
         Fused similarity network of input arrays
 
     Notes
@@ -354,9 +370,9 @@ def _label_prop(W, Y, *, t=1000):
 
     Parameters
     ----------
-    W : (N x N) array_like
+    W : (N, N) array_like
         Similarity array generated by `SNF`
-    Y : (N x G) array_like
+    Y : (N, G) array_like
         Dummy-coded array grouping N subjects in G groups. Some subjects should
         have no group indicated
     t : int, optional
@@ -364,7 +380,7 @@ def _label_prop(W, Y, *, t=1000):
 
     Returns
     -------
-    Y : (N x G) array_like
+    Y : (N, G) array_like
         Psuedo-dummy-coded array grouping N subjects into G groups. Subjects
         with no group indicated now have continuous weights indicating
         likelihood of group membership
@@ -387,7 +403,7 @@ def _dnorm(W, norm='ave'):
 
     Parameters
     ----------
-    W : (N x N) array_like
+    W : (N, N) array_like
         Similarity array generated by `SNF`
     norm : str, optional
         Type of normalization to perform. Must be one of ['ave', 'gph'].
@@ -395,7 +411,7 @@ def _dnorm(W, norm='ave'):
 
     Returns
     -------
-    W_norm : (N x N) array_like
+    W_norm : (N, N) array_like
         Normalized `W`
     """
 
@@ -420,10 +436,10 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
 
     Parameters
     ----------
-    train : `m`-list of (S1 x F) array_like
+    train : `m`-list of (S1, F) array_like
         Input subject x feature training data. Subjects in these data sets
         should have been previously labelled (see: `labels`).
-    test : `m`-list of (S2 x F) array_like
+    test : `m`-list of (S2, F) array_like
         Input subject x feature testing data. These should be similar to the
         data in `train` (though the first dimension can differ). Labels will be
         propogated to these subjects.
@@ -435,7 +451,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         `snf.affinity_matrix` for more details. Default: 20
-    mu : (0,1) float, optional
+    mu : (0, 1) float, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         `snf.affinity_matrix` for more details. Default: 0.5
     t : int, optional
@@ -470,7 +486,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
         affinities += [make_affinity(np.row_stack([tr, te]), K=K, mu=mu)]
 
     # fuse with SNF
-    fused_aff = SNF(affinities, K=K, t=t)
+    fused_aff = SNF(*affinities, K=K, t=t)
 
     # get unique groups in training data and generate array to hold all labels
     groups = np.unique(labels)
@@ -492,7 +508,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
 
     Parameters
     ----------
-    arr : (N x N) array_like
+    arr : (N, N) array_like
         Input array (output from `snf.SNF()`)
     n_clusters : array_like
         Numbers of clusters to choose between
@@ -530,12 +546,12 @@ def dist2(arr):
 
     Parameters
     ----------
-    arr : (N x M) array_like
+    arr : (N, M) array_like
         Input matrix.
 
     Returns
     -------
-    dist : (N x N) np.ndarray
+    dist : (N, N) np.ndarray
         Squared euclidean distance matrix
     """
 

@@ -128,7 +128,7 @@ def zrand(X, Y):
     X, Y : (n, 1) array_like
         Community assignment vectors to compare
 
-    Returnse
+    Returns
     -------
     z_rand : float
         Z-rand index
@@ -190,7 +190,7 @@ def zrand_partitions(communities):
 
     Parameters
     ----------
-    communities : (S x R) array_like
+    communities : (S, R) array_like
         Community assignments for `S` samples over `R` partitions
 
     Returns
@@ -221,7 +221,7 @@ def zrand_convolve(labelgrid, neighbors='edges'):
 
     Parameters
     ----------
-    grid : (S x K x N) array_like
+    grid : (S, K, N) array_like
         Array containing cluster labels for each `N` samples, where `S` is mu
         and `K` is K.
     neighbors : str, optional
@@ -230,10 +230,10 @@ def zrand_convolve(labelgrid, neighbors='edges'):
 
     Returns
     -------
-    zrand_avg : (S x K) np.ndarray
+    zrand_avg : (S, K) np.ndarray
         Array containing average of the z-Rand index calculated using provided
         neighbor kernel
-    zrand_std : (S x K) np.ndarray
+    zrand_std : (S, K) np.ndarray
         Array containing standard deviation of the z-Rand index
     """
 
