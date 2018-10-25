@@ -188,7 +188,7 @@ def get_optimal_params(zaff, labels, neighbors='edges'):
     # get max indices for z-affinity arrays
     indices = [utils.extract_max_inds(aff) for aff in zaff]
     # get labels corresponding to optimal parameters
-    labgrid = [lab[inds] for inds, lab in zip(indices, labels)]
+    labgrid = [lab[tuple(inds)] for inds, lab in zip(indices, labels)]
     # convolve zrand with label array to find stable parameter solutions
     zrand = [utils.zrand_convolve(lab, neighbors)[0] for lab in labgrid]
     # get indices of parameters

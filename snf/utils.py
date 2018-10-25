@@ -43,7 +43,7 @@ def get_neighbors(x, y, neighbors='edges', shape=None):
 
     # extract neighbors, as appropriate
     if neighbors == 'edges':
-        middle = [[0, 1, 1, 1, 2], [1, 0, 1, 2, 1]]
+        middle = ((0, 1, 1, 1, 2), (1, 0, 1, 2, 1))
         xinds, yinds = xinds[middle], yinds[middle]
     elif neighbors == 'corners':
         xinds, yinds = xinds.flatten(), yinds.flatten()
@@ -128,7 +128,7 @@ def zrand(X, Y):
     X, Y : (n, 1) array_like
         Community assignment vectors to compare
 
-    Returns
+    Returnse
     -------
     z_rand : float
         Z-rand index
