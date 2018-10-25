@@ -10,9 +10,14 @@ Utilities for implementing Similarity Network Fusion.
     >>> os.chdir(datadir)
 """
 
-from itertools import combinations
 import numpy as np
 from sklearn.utils.extmath import cartesian
+try:
+    from numba import njit, prange
+    use_numba = True
+except ImportError:
+    prange = range
+    use_numba = False
 
 
 def get_neighbors(x, y, neighbors='edges', shape=None):
@@ -93,6 +98,30 @@ def extract_max_inds(grid, axis=-1):
     return iind
 
 
+def _dummyvar(labels):
+    """
+    Generates dummy-coded array from provided community assignment `labels`
+
+    Parameters
+    ----------
+    labels : (N,) array_like
+        Labels assigning `N` samples to `G` groups
+
+    Returns
+    -------
+    ci : (N, G) numpy.ndarray
+        Dummy-coded array where 1 indicates that a sample belongs to a group
+    """
+
+    comms = np.unique(labels)
+
+    ci = np.zeros((len(labels), len(comms)))
+    for n, grp in enumerate(comms):
+        ci[:, n] = labels == grp
+
+    return ci
+
+
 def zrand(X, Y):
     """
     Calculates the z-Rand index of two community assignments
@@ -115,19 +144,15 @@ def zrand(X, Y):
        <https://arxiv.org/abs/0809.0690>`_
     """
 
-    def dummyvar(i):
-        return np.column_stack([i == grp for grp in np.unique(i)]).astype(int)
+    X, Y = np.squeeze(X), np.squeeze(Y)
+    if X.ndim > 1 or Y.ndim > 1:
+        raise ValueError('X and Y must have only one-dimension each. Please '
+                         'check inputs. X: {}; Y: {}'.format(X.ndim, Y.ndim))
 
-    # we need 2d arrays for this to work; shape (n,1)
-    X, Y = np.atleast_2d(X), np.atleast_2d(Y)
-    if X.shape[0] < X.shape[1]:
-        X = X.T
-    if Y.shape[0] < Y.shape[1]:
-        Y = Y.T
-    n = X.shape[0]
-
-    indx, indy = dummyvar(X), dummyvar(Y)
-    Xa, Ya = indx @ indx.T, indy @ indy.T
+    n = len(X)
+    indx, indy = _dummyvar(X), _dummyvar(Y)
+    Xa = indx.dot(indx.T)
+    Ya = indy.dot(indy.T)
 
     M = n * (n - 1) / 2
     M1 = Xa.nonzero()[0].size / 2
@@ -176,12 +201,15 @@ def zrand_partitions(communities):
         Standard deviation of z-Rand over pairs of community assignments
     """
 
-    # TODO: parallelize this
-    all_zrand = [zrand(x[:, np.newaxis], y[:, np.newaxis])
-                 for (x, y) in combinations(communities.T, 2)]
-    zrand_avg, zrand_std = np.nanmean(all_zrand), np.nanstd(all_zrand)
+    n_partitions = communities.shape[-1]
+    all_zrand = np.zeros(int(n_partitions * (n_partitions - 1) / 2))
 
-    return zrand_avg, zrand_std
+    for c1 in prange(n_partitions):
+        for c2 in prange(c1 + 1, n_partitions):
+            idx = (c1 * n_partitions) + c2 - ((c1 + 1) * (c1 + 2) // 2)
+            all_zrand[idx] = zrand(communities[:, c1], communities[:, c2])
+
+    return np.nanmean(all_zrand), np.nanstd(all_zrand)
 
 
 def zrand_convolve(labelgrid, neighbors='edges'):
@@ -213,6 +241,12 @@ def zrand_convolve(labelgrid, neighbors='edges'):
     zrand = np.empty(shape=labelgrid.shape[:-1] + (2,))
     for x, y in inds:
         ninds = get_neighbors(x, y, neighbors=neighbors, shape=labelgrid.shape)
-        zrand[x, y] = zrand_partitions(labelgrid[ninds].T)
+        zrand[x, y] = zrand_partitions(labelgrid[ninds])
 
     return zrand[..., 0], zrand[..., 1]
+
+
+if use_numba:
+    _dummyvar = njit(_dummyvar)
+    zrand = njit(zrand)
+    zrand_partitions = njit(zrand_partitions, parallel=True)
