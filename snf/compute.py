@@ -202,7 +202,7 @@ def _B0_normalized(W, alpha=1.0):
 
 
 def SNF(aff, *, K=20, t=20, alpha=1.0):
-    """
+    r"""
     Performs Similarity Network Fusion on `aff` matrices
 
     Parameters
