@@ -6,7 +6,6 @@ notifications:
 python:
     - 3.5
     - 3.6
-    - 3.7
 
 env:
     - LINTING=1
@@ -22,14 +21,11 @@ before_install:
     - if [ "${COVERAGE}" == "1" ]; then
           pip install coverage coveralls codecov pytest pytest-cov;
       fi
-    - if [ "${NUMBA}" == "1" ]; then
-          pip install numba;
-      fi
 
 install:
-    - if [ "${NUMBA}" ]; then
+    - if [ "${NUMBA}" == "1" ]; then
           pip install -e .[numba];
-      elif [ "${DOCTEST}" ]; then
+      elif [ "${DOCTEST}" == "1" ]; then
           pip install -e .[doc];
       else
           pip install -e .;
