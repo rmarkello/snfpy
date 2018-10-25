@@ -29,22 +29,21 @@ def test_B0_normalized():
 
 
 def test_SNF():
-    aff = [compute.make_affinity(data) for data in [data1, data2]]
-    out = compute.SNF(aff)
+    aff = compute.make_affinity(data1, data2)
+    out = compute.SNF(*aff)
     assert out.shape == aff[0].shape
     assert out.shape == aff[1].shape
 
 
 def test_get_n_clusters():
-    aff = [compute.make_affinity(data) for data in [data1, data2]]
-    out = compute.SNF(aff)
+    aff = compute.make_affinity(data1, data2)
+    out = compute.SNF(*aff)
     compute.get_n_clusters(out)
 
 
 def test_dist2():
-    dist = compute.dist2(data1, data2)
+    dist = compute.dist2(data1)
     assert dist.shape == (len(data1), len(data1))
-    assert np.allclose(compute.dist2(data1), compute.dist2(data1, data1))
 
 
 def test_group_predict():
