@@ -23,7 +23,7 @@ INSTALL_REQUIRES = [
 ]
 
 TESTS_REQUIRE = [
-    'codecov'
+    'codecov',
     'pytest',
     'pytest-cov'
 ]

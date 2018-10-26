@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Code for implementing cross-validation of Similarity Network Fusion.
-
-.. testsetup::
-    # change directory to provide relative paths for doctests
-    >>> import os
-    >>> filepath = os.path.dirname(os.path.realpath(__file__))
-    >>> datadir = os.path.realpath(os.path.join(filepath, 'tests/data/sim'))
-    >>> os.chdir(datadir)
 """
 
 import numpy as np
