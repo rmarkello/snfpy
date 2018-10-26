@@ -17,7 +17,7 @@ DOWNLOAD_URL = ('http://github.com/rmarkello/{name}/archive/{ver}.tar.gz'
                 .format(name=NAME, ver=__version__))
 
 INSTALL_REQUIRES = [
-    'numpy',
+    'numpy>=1.14',
     'scikit-learn',
     'scipy',
 ]
