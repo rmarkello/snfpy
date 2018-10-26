@@ -9,8 +9,8 @@ python:
 
 env:
     - LINTING=1
-    - NUMBA=0
-    - NUMBA=1 COVERAGE=1
+    - NUMBA=0 COVERAGE=1
+    - NUMBA=1
     - DOCTEST=1
 
 before_install:
