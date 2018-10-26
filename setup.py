@@ -12,26 +12,32 @@ def main():
                           'this package. Current\nversion detected is ' +
                           sys.version.split(' ')[0])
 
-    # from nipype setup.py file
     ldict = locals()
     curr_path = os.path.dirname(__file__)
-    ver_file = os.path.join(curr_path, 'snf', 'info.py')
-    with open(ver_file) as infofile:
+    with open(os.path.join(curr_path, 'snf', 'info.py')) as infofile:
         exec(infofile.read(), globals(), ldict)
 
+    with open(os.path.join(curr_path, ldict['LONG_DESCRIPTION'])) as src:
+        ldict['LONG_DESCRPITION'] = src.read()
+
     setup(
-        name=ldict['NAME'],
-        version=ldict['VERSION'],
+        # classifiers=ldict['CLASSIFIERS'],
         description=ldict['DESCRIPTION'],
+        download_url=ldict['DOWNLOAD_URL'],
+        extras_require=ldict['EXTRAS_REQUIRE'],
+        install_requires=ldict['INSTALL_REQUIRES'],
+        license=ldict['LICENSE'],
+        long_description=ldict['LONG_DESCRIPTION'],
+        long_description_content_type=ldict['LONG_DESCRIPTION_CONTENT_TYPE'],
         maintainer=ldict['MAINTAINER'],
         maintainer_email=ldict['EMAIL'],
-        url=ldict['URL'],
-        download_url=ldict['DOWNLOAD_URL'],
-        install_requires=ldict['INSTALL_REQUIRES'],
+        name=ldict['NAME'],
         packages=find_packages(exclude=['snf/tests']),
         package_data=ldict['PACKAGE_DATA'],
         tests_require=ldict['TESTS_REQUIRE'],
-        license=ldict['LICENSE'])
+        url=ldict['URL'],
+        version=ldict['VERSION'],
+    )
 
 
 if __name__ == '__main__':
