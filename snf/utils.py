@@ -148,10 +148,12 @@ def zrand(X, Y):
         if X.shape[-1] > 1 or Y.shape[-1] > 1:
             raise ValueError('X and Y must have only one-dimension each. '
                              'Please check inputs.')
-    X, Y = X.flatten(), Y.flatten()
 
-    n = len(X)
-    indx, indy = _dummyvar(X), _dummyvar(Y)
+    Xf = X.flatten()
+    Yf = Y.flatten()
+
+    n = len(Xf)
+    indx, indy = _dummyvar(Xf), _dummyvar(Yf)
     Xa = indx.dot(indx.T)
     Ya = indy.dot(indy.T)
 
