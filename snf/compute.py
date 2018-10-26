@@ -106,7 +106,7 @@ def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
 
 
 def affinity_matrix(dist, *, K=20, mu=0.5):
-    """
+    r"""
     Calculates affinity matrix given distance matrix `dist`
 
     Uses a scaled exponential similarity kernel to determine the weight of each
@@ -243,7 +243,7 @@ def _B0_normalized(W, alpha=1.0):
 
 
 def SNF(*aff, K=20, t=20, alpha=1.0):
-    """
+    r"""
     Performs Similarity Network Fusion on `aff` matrices
 
     Parameters
