@@ -5,39 +5,38 @@ Usage
 
 Brief example
 ---------------
+
 A brief example for those who just want to get started: ::
 
     >>> import numpy as np
     >>> import snf
 
-    # load data matrices and ground truth cluster labels
-    >>> data_files, dist_metric = ['data1.csv', 'data2.csv'], 'euclidean'
-    >>> true_labels = np.loadtxt('labels.csv')
-    >>> data_tuples = [(np.loadtxt(fname), dist_metric) for fname in data_files]
+    # load raw subject x features data matrices
+    >>> data = [np.loadtxt(fname) for fname in ['data1.csv', 'data2.csv']]
 
-    # construct subj x subj affinity matrices from data
-    >>> affinities = []
-    >>> for (data, metric) in data_tuples:
-    >>>     affinities += [snf.make_affinity(data, metric=metric, K=20, mu=0.5)]
+    # construct subject x subject affinity matrices from raw data
+    >>> affinities = snf.make_affinity(data, metric='euclidean')
 
     # compute fused matrix via SNF
-    >>> fused_aff = snf.SNF(affinities, K=params['K'])
+    >>> fused = snf.SNF(affinities)
 
     # get optimal cluster number ("eigengap" method) and cluster
-    >>> n_clusters = snf.get_n_clusters(fused_aff)[0]
-    >>> fused_labels = snf.spectral_clustering(fused_aff, n_clusters=n_clusters)
+    >>> n_clusters = snf.get_n_clusters(fused)[0]
+    >>> fused_labels = snf.spectral_clustering(fused, n_clusters=n_clusters)
 
     # compute normalized mutual information for clustering solutions against ground truth
-    >>> all_labels = [true_labels, fused_labels]
+    >>> true_labels = np.loadtxt('labels.csv')
+    >>> labels = [true_labels, fused_labels]
     >>> for arr in affinities:
-    >>>     all_labels += [snf.spectral_clustering(arr, n_clusters=n_clusters)]
+    >>>     labels += [snf.spectral_clustering(arr, n_clusters=n_clusters)]
     >>> nmi = snf.nmi(all_labels)
 
     # compute silhouette score to assess goodness-of-fit for clustering
-    >>> silhouette = snf.silhouette_score(fused_aff, fused_labels)
+    >>> silhouette = snf.silhouette_score(fused, fused_labels)
 
 In-depth example
 ----------------
+
 Using SNF is pretty straightforward. There are only a handful of commands that
 you'll need, and the output (a subject x subject array) can easily be carried
 forward to any number of analysis pipelines.
@@ -46,41 +45,40 @@ Nonetheless, for a standard scenario, this package comes bundled with two
 datasets provided by the original authors of SNF which can be quite
 illustrative.
 
-First, we'll load in this data and create a list of data/distance metric tuples.
-The data array should be (N x M), where N is the number of subjects and M are
-features. The distance metric will be something like ``'euclidean'`` or
-``'sqeuclidean'``. Check out the documentation for
-``scipy.spatial.distance.cdist`` for appropriate arguments. ::
+First, we'll load in the data; data arrays should be (N x M), where `N` is
+samples and `M` are features. ::
 
     >>> import numpy as np
-    >>> import snf
-    >>> data_files, dist_metric = ['data1.csv', 'data2.csv'], 'euclidean'
-    >>> true_labels = np.loadtxt('labels.csv')
-    >>> data_tuples = [(np.loadtxt(fname), dist_metric) for fname in data_files]
+    >>> data1 = np.loadtxt('data1.csv')
+    >>> data2 = np.loadtxt('data2.csv')
 
-Once we have our (data, distance) tuples, we need to create affinity matrices.
+Once we have our data arrays loaded, we need to create affinity matrices.
 Unlike distance matrices, a higher number in an affinity matrix indicates
 increased similarity. Thus, the highest numbers should always be along the
 diagonal, since subjects are always most similar to themselves!
 
 To construct our affinity matrix, we'll use ``snf.make_affinity``, which
-first constructs a distance matrix (using the provided distance metric) and
-then converts this into an affinity matrix based on a given subject's
-similarity to their ``K`` nearest neighbors. As such, we need to provide a few
+first constructs a distance matrix (using a provided distance metric) and then
+converts this into an affinity matrix based on a given subject's similarity to
+their ``K`` nearest neighbors. As such, we need to provide a few
 hyperparameters: ``K`` and ``mu``. ``K`` determines the number of nearest
 neighbors to consider when constructing the affinity matrix; ``mu`` is a
 scaling factor that weights the affinity matrix. While the appropriate numbers
 for these varies based on scenario, a good rule is that ``K`` should be around
-``N / 10``, and ``mu`` should be in the range (0.2 - 0.7). ::
+``N // 10``, and ``mu`` should be in the range (0.2 - 0.8). ::
 
-    >>> affinities = []
-    >>> for (data, metric) in data_tuples:
-    >>>     affinities += [snf.make_affinity(data, metric=metric, K=20, mu=0.5)]
+    >>> import snf
+    >>> affinities = snf.make_affinity(data1, data2, metric='euclidean',
+                                       K=20, mu=0.5)
+
+Note that we specified ``metric='euclidean'``, specifying that we wanted to use
+euclidean distance in the generation of the initial distance array before
+constructing the affinity matrix.
 
 Once we have our affinity arrays, we can run them through the SNF algorithm. We
 need to carry forward our ``K`` hyperparameter to this algorithm, as well. ::
 
-    >>> fused_aff = snf.SNF(affinities, K=params['K'])
+    >>> fused_aff = snf.SNF(affinities, K=20)
 
 The array output by SNF is a fused affinity matrix; that is, it represents
 data from all the inputs. It's designed to be full rank, and can thus be
@@ -100,6 +98,7 @@ we had used the data from either of the original matrices, individually.
 To do this, we first need to generate cluster labels from the individual
 affinity matrices. ::
 
+    >>> true_labels = np.loadtxt('labels.csv')
     >>> all_labels = [true_labels, fused_labels]
     >>> for arr in affinities:
     >>>     all_labels += [snf.spectral_clustering(arr, n_clusters=n_clusters)]
@@ -114,7 +113,7 @@ labels generated by SNF and the ones we just obtained. ::
      [0.         0.         1.         0.2910661 ]
      [0.         0.         0.         1.        ]]
 
-The output array is symmteric, so we'll show only the upper triangle for now.
+The output array is symmetric, so we'll show only the upper triangle for now.
 The values range from 0 to 1, where 0 indicates no overlap and 1 indicates a
 perfect correspondence between the two sets of labels.
 
@@ -139,7 +138,7 @@ solution and 1 indicates a fantastic solution. ::
 
 This indicates that the clustering solution for the data is pretty good! We
 could try playing around with the hyperparameters to see if we can improve our
-fit (being careful to do so in a way that won't overfit to your data!). It's
+fit (being careful to do so in a way that won't overfit to the data). It's
 worth noting that the silhouette score here is slightly modified to deal with
-the fact that we're working with affinity matrices, NOT distance matrices. See
-the :ref:`API reference <api_ref>` for more information.
+the fact that we're working with affinity matrices instead of distance matrices.
+See the :ref:`API reference <api_ref>` for more information.

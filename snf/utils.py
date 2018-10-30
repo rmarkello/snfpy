@@ -43,7 +43,7 @@ def get_neighbors(x, y, neighbors='edges', shape=None):
 
     # extract neighbors, as appropriate
     if neighbors == 'edges':
-        middle = [[0, 1, 1, 1, 2], [1, 0, 1, 2, 1]]
+        middle = ((0, 1, 1, 1, 2), (1, 0, 1, 2, 1))
         xinds, yinds = xinds[middle], yinds[middle]
     elif neighbors == 'corners':
         xinds, yinds = xinds.flatten(), yinds.flatten()
@@ -190,7 +190,7 @@ def zrand_partitions(communities):
 
     Parameters
     ----------
-    communities : (S x R) array_like
+    communities : (S, R) array_like
         Community assignments for `S` samples over `R` partitions
 
     Returns
@@ -221,7 +221,7 @@ def zrand_convolve(labelgrid, neighbors='edges'):
 
     Parameters
     ----------
-    grid : (S x K x N) array_like
+    grid : (S, K, N) array_like
         Array containing cluster labels for each `N` samples, where `S` is mu
         and `K` is K.
     neighbors : str, optional
@@ -230,10 +230,10 @@ def zrand_convolve(labelgrid, neighbors='edges'):
 
     Returns
     -------
-    zrand_avg : (S x K) np.ndarray
+    zrand_avg : (S, K) np.ndarray
         Array containing average of the z-Rand index calculated using provided
         neighbor kernel
-    zrand_std : (S x K) np.ndarray
+    zrand_std : (S, K) np.ndarray
         Array containing standard deviation of the z-Rand index
     """
 
