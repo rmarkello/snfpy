@@ -241,7 +241,7 @@ def zrand_convolve(labelgrid, neighbors='edges'):
     zrand = np.empty(shape=labelgrid.shape[:-1] + (2,))
     for x, y in inds:
         ninds = get_neighbors(x, y, neighbors=neighbors, shape=labelgrid.shape)
-        zrand[x, y] = zrand_partitions(labelgrid[ninds])
+        zrand[x, y] = zrand_partitions(labelgrid[ninds].T)
 
     return zrand[..., 0], zrand[..., 1]
 
