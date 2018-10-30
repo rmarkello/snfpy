@@ -33,11 +33,11 @@ def _check_data_metric(data, metric):
     if isinstance(data, (list, tuple)):
         data = [check_array(a, force_all_finite=False) for a in data]
         check_consistent_length(*data)
-        if not isinstance(metric, list):
+        if not isinstance(metric, (list, tuple)):
             metric = [metric for i in range(len(data))]
     else:
         data = [check_array(data, force_all_finite=False)]
-        metric = [metric[0]] if isinstance(metric, list) else [metric]
+        metric = [metric[0]] if isinstance(metric, (list, tuple)) else [metric]
     check_consistent_length(data, metric)
 
     return data, metric
@@ -94,6 +94,8 @@ def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
             zarr = np.zeros_like(inp)
             zarr[mask] = np.nan
             zarr[~mask] = np.nan_to_num(scipy.stats.zscore(inp[~mask], ddof=1))
+        else:
+            zarr = inp
 
         # construct distance matrix using `metric` and make affinity matrix
         distance = cdist(zarr, zarr, metric=met)
