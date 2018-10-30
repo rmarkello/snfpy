@@ -33,6 +33,8 @@ def test_SNF():
     out = compute.SNF(*aff)
     assert out.shape == aff[0].shape
     assert out.shape == aff[1].shape
+    # both individual arrays and list should work as input
+    assert np.allclose(out, compute.SNF(aff))
 
 
 def test_get_n_clusters():

@@ -7,6 +7,7 @@ Code for implementing Similarity Network Fusion.
     from snf.compute import *
 """
 
+import itertools
 import numpy as np
 from scipy.sparse import diags
 from scipy.spatial.distance import cdist
@@ -352,6 +353,10 @@ def _check_SNF_inputs(aff):
     aff : `m`-list of (N x N) array_like
         Input similarity arrays. All arrays should be square and of equal size.
     """
+
+    # convert to list, as needed
+    if any([isinstance(a, (list, tuple)) for a in aff]):
+        aff = list(itertools.chain.from_iterable(aff))
 
     aff = [check_array(a, force_all_finite=False) for a in aff]
     aff = [check_symmetric(a, raise_warning=False) for a in aff]
