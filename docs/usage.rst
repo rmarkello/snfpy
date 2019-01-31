@@ -1,10 +1,10 @@
-.. _usage_ref:
+.. _usage:
 
-Usage
-=====
+User guide
+==========
 
 Brief example
----------------
+-------------
 
 A brief example for those who just want to get started: ::
 
@@ -18,7 +18,7 @@ A brief example for those who just want to get started: ::
     >>> affinities = snf.make_affinity(data, metric='euclidean')
 
     # compute fused matrix via SNF
-    >>> fused = snf.SNF(affinities)
+    >>> fused = snf.snf(affinities)
 
     # get optimal cluster number ("eigengap" method) and cluster
     >>> n_clusters = snf.get_n_clusters(fused)[0]
@@ -78,7 +78,7 @@ constructing the affinity matrix.
 Once we have our affinity arrays, we can run them through the SNF algorithm. We
 need to carry forward our ``K`` hyperparameter to this algorithm, as well. ::
 
-    >>> fused_aff = snf.SNF(affinities, K=20)
+    >>> fused_aff = snf.snf(affinities, K=20)
 
 The array output by SNF is a fused affinity matrix; that is, it represents
 data from all the inputs. It's designed to be full rank, and can thus be
@@ -140,5 +140,5 @@ This indicates that the clustering solution for the data is pretty good! We
 could try playing around with the hyperparameters to see if we can improve our
 fit (being careful to do so in a way that won't overfit to the data). It's
 worth noting that the silhouette score here is slightly modified to deal with
-the fact that we're working with affinity matrices instead of distance matrices.
-See the :ref:`API reference <api_ref>` for more information.
+the fact that we're working with affinity matrices instead of distance
+matrices. See the :ref:`API reference <ref_api>` for more information.
