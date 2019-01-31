@@ -1,57 +1,81 @@
 # -*- coding: utf-8 -*-
 
-import os.path as op
-import pkg_resources
 import numpy as np
 import pytest
 from snf import compute
 
 rs = np.random.RandomState(1234)
-test_dir = pkg_resources.resource_filename('snf', 'tests/data/sim')
-data1 = np.loadtxt(op.join(test_dir, 'data1.csv'))
-data2 = np.loadtxt(op.join(test_dir, 'data2.csv'))
-label = np.loadtxt(op.join(test_dir, 'label.csv'), dtype=int)
 
 
-def test_make_affinity():
-    aff = compute.make_affinity(data1)
-    assert aff.shape == (len(data1), len(data1))
+def test_check_data_metric(simdata, digits):
+    # vanilla tests to check outputs match
+    d, m = zip(*list(compute._check_data_metric(simdata.data, 'euclidean')))
+    assert len(d) == len(m) == 2
+    d, m = zip(*list(compute._check_data_metric(digits.data, 'euclidean')))
+    assert len(d) == len(m) == 4
+
+    # check that single value for metric is propagated through to all arrays
+    d, m = zip(*list(compute._check_data_metric([simdata.data, simdata.data],
+                                                'euclidean')))
+    assert len(d) == len(m) == 4
+    assert all(f == 'euclidean' for f in m)
+
+    # check that metrics will be expanded to accompany data argument sublists
+    d, m = zip(*list(compute._check_data_metric([simdata.data, simdata.data],
+                                                ['euclidean', 'cityblock'])))
+    assert len(d) == len(m) == 4
+    assert m == tuple(['euclidean'] * 2 + ['cityblock'] * 2)
 
 
-def test_find_dominate_set():
-    aff = compute.make_affinity(data1)
-    compute._find_dominate_set(aff)
+@pytest.fixture(scope='module')
+def test_affinity(simdata):
+
+    # this should handle a lot of different argument definitions
+    aff = compute.make_affinity(simdata.data)
+    aff_copy = compute.make_affinity(*simdata.data)
+    assert all(np.allclose(a1, a2) for (a1, a2) in zip(aff, aff_copy))
+
+    # outputs are square with shape (samples, samples)
+    assert all(a.shape == (len(d), len(d)) for a, d in zip(aff, simdata.data))
+
+    # all outputs are entirely positive (i.e., similarity / affinity)
+    assert all(np.all(a > 0) for a in aff)
+
+    return aff
 
 
-def test_B0_normalized():
-    aff = compute.make_affinity(data1)
-    compute._B0_normalized(aff)
+def test_find_dominate_set(test_affinity):
+    compute._find_dominate_set(test_affinity[0])
 
 
-def test_snf():
-    aff = compute.make_affinity(data1, data2)
-    out = compute.snf(*aff)
-    assert out.shape == aff[0].shape
-    assert out.shape == aff[1].shape
+def test_B0_normalized(test_affinity):
+    compute._B0_normalized(test_affinity[0])
+
+
+def test_snf(test_affinity):
+    out = compute.snf(*test_affinity)
+    assert out.shape == test_affinity[0].shape
+    assert out.shape == test_affinity[1].shape
     # both individual arrays and list should work as input
-    assert np.allclose(out, compute.snf(aff))
+    assert np.allclose(out, compute.snf(test_affinity))
 
 
-def test_get_n_clusters():
-    aff = compute.make_affinity(data1, data2)
-    out = compute.snf(*aff)
+def test_get_n_clusters(test_affinity):
+    out = compute.snf(*test_affinity)
     compute.get_n_clusters(out)
 
 
-def test_dist2():
-    dist = compute.dist2(data1)
-    assert dist.shape == (len(data1), len(data1))
+def test_dist2(simdata):
+    for data in simdata.data:
+        assert compute.dist2(data).shape == (len(data), len(data))
 
 
-def test_group_predict():
-    train = [d[::2] for d in [data1, data2]]
-    test = [d[1::2] for d in [data1, data2]]
-    train_lab = label[::2]
+def test_group_predict(simdata):
+    # split train/test and labels
+    train = [d[::2] for d in simdata.data]
+    test = [d[1::2] for d in simdata.data]
+    train_lab = simdata.labels[::2]
+
     compute.group_predict(train, test, train_lab)
     with pytest.raises(ValueError):
         tr = [d[:, 0] for d in train]

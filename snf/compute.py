@@ -26,18 +26,29 @@ def _check_data_metric(data, metric):
         Input distance metrics. If provided as a list, should be the same
         length as `data`
     """
-    # check input arrays and metrics
-    if isinstance(data, (list, tuple)):
-        data = [check_array(a, force_all_finite=False) for a in data]
-        check_consistent_length(*data)
-        if not isinstance(metric, (list, tuple)):
-            metric = [metric for i in range(len(data))]
-    else:
-        data = [check_array(data, force_all_finite=False)]
-        metric = [metric[0]] if isinstance(metric, (list, tuple)) else [metric]
-    check_consistent_length(data, metric)
 
-    return data, metric
+    def _flatten(messy):
+        """ https://stackoverflow.com/a/2158532 :chef-kissing-fingers-emoji:
+        """
+        for m in messy:
+            if isinstance(m, (list, tuple)):
+                yield from _flatten(m)
+            else:
+                yield m
+
+    # make sure they're all the same length
+    check_consistent_length(*list(_flatten(data)))
+
+    # check provided metric -- if not a list, make it so
+    if not isinstance(metric, (list, tuple)):
+        metric = [metric] * len(data)
+
+    for d, m in zip(data, metric):
+        # if it's an iterable, recurse down
+        if isinstance(d, (list, tuple)):
+            yield from _check_data_metric(d, m)
+        else:
+            yield check_array(d, force_all_finite=False), m
 
 
 def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
@@ -81,10 +92,8 @@ def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
     (200, 200)
     """
 
-    inputs, metrics = _check_data_metric(data, metric)
-
     affinity = []
-    for inp, met in zip(inputs, metrics):
+    for inp, met in _check_data_metric(data, metric):
         # normalize data, taking into account potentially missing data
         if normalize:
             mask = np.isnan(inp).all(axis=1)
@@ -317,7 +326,7 @@ def snf(*aff, K=20, t=20, alpha=1.0):
 
     aff = _check_SNF_inputs(aff)
     nW, aff0 = [0] * len(aff), [0] * len(aff)
-    Wsum = np.zeros((aff[0].shape))
+    Wsum = np.zeros(aff[0].shape)
 
     # get number of modalities informing each subject x subject affinity
     n_aff = len(aff) - np.sum([np.isnan(a) for a in aff], axis=0)
@@ -361,6 +370,7 @@ def _check_SNF_inputs(aff):
     aff = [check_symmetric(a, raise_warning=False) for a in aff]
     check_consistent_length(*aff)
 
+    # TODO: actually do this check for missing data
     nanaff = len(aff) - np.sum([np.isnan(a) for a in aff], axis=0)
     if np.any(nanaff == 0):
         pass
