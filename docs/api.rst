@@ -67,3 +67,21 @@ your own workflows.
 
    snf_gridsearch
    get_optimal_params
+
+.. _ref_datasets:
+
+:mod:`snf.datasets` - Load tests datasets
+-----------------------------------------
+
+.. automodule:: snf.datasets
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: snf.datasets
+
+.. autosummary::
+   :template: function.rst
+   :toctree:  _generated/
+
+   load_simdata
+   load_digits
