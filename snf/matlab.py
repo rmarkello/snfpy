@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
+"""
+Aliases for easier compatibility with the SNF toolbox written in Matlab
+"""
 
-from snf import compute, metrics
-from sklearn.cluster import spectral_clustering
+from . import compute as _compute, metrics as _metrics
 
-affinityMatrix = compute.affinity_matrix
-B0normalized = compute._B0_normalized
-Cal_NMI = metrics.normalized_mutual_info_score
-Concordance_Network_NMI = metrics.nmi
-dist2 = compute.dist2
-Estimate_Number_of_Clusters_given_graph = compute.get_n_clusters
-FindDominateSet = compute._find_dominate_set
-SNF = compute.SNF
-SpectralClustering = spectral_clustering
-Standard_Normalization = compute.scipy.stats.zscore
+affinityMatrix = _compute.affinity_matrix
+B0normalized = _compute._B0_normalized
+Cal_NMI = _metrics.normalized_mutual_info_score
+Concordance_Network_NMI = _metrics.nmi
+dist2 = _compute.dist2
+Estimate_Number_of_Clusters_given_graph = _compute.get_n_clusters
+FindDominateSet = _compute._find_dominate_set
+SNF = _compute.snf
+Standard_Normalization = _compute.scipy.stats.zscore
