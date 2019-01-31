@@ -1,0 +1,4 @@
+include README.md requirements.txt LICENSE COPYING.LESSER
+
+include versioneer.py
+include snf/_version.py

@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '0.1'
-
-NAME = 'snfpy'
-MAINTAINER = 'Ross Markello'
-EMAIL = 'rossmarkello@gmail.com'
-VERSION = __version__
-LICENSE = 'LGPLv3'
-DESCRIPTION = """\
-A toolbox for Similarity Network Fusion (SNF)\
-"""
-LONG_DESCRIPTION = 'README.md'
-LONG_DESCRIPTION_CONTENT_TYPE = 'text/markdown'
-URL = 'https://github.com/rmarkello/{name}'.format(name=NAME)
-DOWNLOAD_URL = ('http://github.com/rmarkello/{name}/archive/{ver}.tar.gz'
-                .format(name=NAME, ver=__version__))
+__author__ = 'snfpy developers'
+__copyright__ = 'Copyright 2018, snfpy developers'
+__credits__ = ['Ross Markello']
+__license__ = 'LGPGv3'
+__maintainer__ = 'Ross Markello'
+__email__ = 'rossmarkello@gmail.com'
+__status__ = 'Prototype'
+__url__ = 'http://github.com/rmarkello/snfpy'
+__packagename__ = 'snf'
+__description__ = ('snfpy is a Python toolbox for performing similarity '
+                   'network fusion.')
+__longdesc__ = 'README.md'
+__longdesctype__ = 'text/markdown'
 
 INSTALL_REQUIRES = [
     'numpy>=1.14',
@@ -29,7 +27,6 @@ TESTS_REQUIRE = [
 
 EXTRAS_REQUIRE = {
     'doc': [
-        'numpydoc',
         'sphinx>=1.2',
         'sphinx_rtd_theme',
     ],
