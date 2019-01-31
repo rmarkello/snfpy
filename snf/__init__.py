@@ -1,10 +1,6 @@
-__all__ = ['__version__', 'matlab', 'R', 'make_affinity', 'SNF',
-           'get_n_clusters', 'spectral_clustering', 'nmi', 'silhouette_score',
-           'affinity_zscore', 'SNF_gridsearch', 'get_optimal_params']
+__all__ = [
+    'cv', 'metrics', 'make_affinity', 'snf', 'get_n_clusters'
+]
 
-from snf.info import (__version__)
-from snf import (matlab, R)
-from snf.compute import (make_affinity, SNF, get_n_clusters)
-from snf.metrics import (nmi, silhouette_score, affinity_zscore)
-from snf.cv import (SNF_gridsearch, get_optimal_params)
-from sklearn.cluster import spectral_clustering
+from . import (cv, metrics)
+from .compute import (make_affinity, snf, get_n_clusters)

@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Code for implementing Similarity Network Fusion.
-
-.. testsetup::
-
-    from snf.compute import *
 """
 
 import itertools
 import numpy as np
 from scipy.sparse import diags
 from scipy.spatial.distance import cdist
-import scipy.stats
-from sklearn.decomposition import PCA
+from scipy import stats
+from sklearn import decomposition
 from sklearn.utils.validation import (check_array, check_symmetric,
                                       check_consistent_length)
 
@@ -93,7 +89,7 @@ def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
             mask = np.isnan(inp).all(axis=1)
             zarr = np.zeros_like(inp)
             zarr[mask] = np.nan
-            zarr[~mask] = np.nan_to_num(scipy.stats.zscore(inp[~mask], ddof=1))
+            zarr[~mask] = np.nan_to_num(stats.zscore(inp[~mask], ddof=1))
         else:
             zarr = inp
 
@@ -187,7 +183,7 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
 
     # get probability density function with scale mu*sigma and symmetrize
     scale = (mu * np.nan_to_num(sigma)) + mask
-    W = scipy.stats.norm.pdf(np.nan_to_num(dist), loc=0, scale=scale)
+    W = stats.norm.pdf(np.nan_to_num(dist), loc=0, scale=scale)
     W[mask] = np.nan
     W = check_symmetric(W, raise_warning=False)
 
@@ -245,7 +241,7 @@ def _B0_normalized(W, alpha=1.0):
     return W
 
 
-def SNF(*aff, K=20, t=20, alpha=1.0):
+def snf(*aff, K=20, t=20, alpha=1.0):
     r"""
     Performs Similarity Network Fusion on `aff` matrices
 
@@ -454,7 +450,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
         Cluster labels for `S1` subjects in `train` data sets. These could have
         been obtained from some ground-truth labelling or via a previous
         iteration of SNF with only the `train` data (e.g., the output of
-        ``spectral_clustering`` would be appropriate here).
+        :py:func:`sklearn.cluster.spectral_clustering` would be appropriate).
     K : (0, N) int, optional
         Hyperparameter normalization factor for scaling. See `Notes` of
         `snf.affinity_matrix` for more details. Default: 20
@@ -493,7 +489,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
         affinities += [make_affinity(np.row_stack([tr, te]), K=K, mu=mu)]
 
     # fuse with SNF
-    fused_aff = SNF(*affinities, K=K, t=t)
+    fused_aff = snf(*affinities, K=K, t=t)
 
     # get unique groups in training data and generate array to hold all labels
     groups = np.unique(labels)
@@ -516,7 +512,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     Parameters
     ----------
     arr : (N, N) array_like
-        Input array (output from `snf.SNF()`)
+        Input array (output from `snf.snf()`)
     n_clusters : array_like
         Numbers of clusters to choose between
 
@@ -536,7 +532,7 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
     """
 
     n_clusters = check_array(n_clusters, ensure_2d=False)
-    eigenvalue = PCA().fit(arr).singular_values_[:-1]
+    eigenvalue = decomposition.PCA().fit(arr).singular_values_[:-1]
     eigengap = np.abs(np.diff(eigenvalue))
     eigengap = eigengap * (1 - eigenvalue[:-1]) / (1 - eigenvalue[1:])
     n = eigengap[n_clusters - 1].argsort()[::-1]

@@ -28,18 +28,18 @@ def test_B0_normalized():
     compute._B0_normalized(aff)
 
 
-def test_SNF():
+def test_snf():
     aff = compute.make_affinity(data1, data2)
-    out = compute.SNF(*aff)
+    out = compute.snf(*aff)
     assert out.shape == aff[0].shape
     assert out.shape == aff[1].shape
     # both individual arrays and list should work as input
-    assert np.allclose(out, compute.SNF(aff))
+    assert np.allclose(out, compute.snf(aff))
 
 
 def test_get_n_clusters():
     aff = compute.make_affinity(data1, data2)
-    out = compute.SNF(*aff)
+    out = compute.snf(*aff)
     compute.get_n_clusters(out)
 
 
