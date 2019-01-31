@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Code for implementing Similarity Network Fusion.
+Contains the primary functions for conducting similarity network fusion
+workflows.
 """
 
 import itertools

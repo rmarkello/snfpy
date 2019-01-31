@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Various metrics for interpreting the outputs of similarity network fusion
+Functions for computing various metrics to aid interpretation of similarity
+network fusion outputs.
 """
 
 import numpy as np
