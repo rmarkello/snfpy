@@ -25,16 +25,16 @@ before_install:
           pip install flake8;
       fi
     - if [ "${COVERAGE}" == "1" ]; then
-          pip install coverage coveralls codecov pytest pytest-cov;
+          pip install coverage coveralls codecov;
       fi
 
 install:
     - if [ "${NUMBA}" == "1" ]; then
-          pip install -e .[numba];
+          pip install -e .[numba,tests];
       elif [ "${DOCTEST}" == "1" ]; then
-          pip install -e .[doc];
+          pip install -e .[doc,tests];
       else
-          pip install -e .;
+          pip install -e .[tests];
       fi
 
 script:

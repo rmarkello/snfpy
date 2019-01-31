@@ -141,23 +141,23 @@ def affinity_matrix(dist, *, K=20, mu=0.5):
 
     .. math::
 
-       \\mathbf{W}(i, j) = \\frac{1}{\\sqrt{2\\pi\\sigma^2}}
-                           \\ exp^{-\\frac{\\rho^2(x_{i},x_{j})}{2\\sigma^2}}
+       \mathbf{W}(i, j) = \frac{1}{\sqrt{2\pi\sigma^2}}
+                          \ exp^{-\frac{\rho^2(x_{i},x_{j})}{2\sigma^2}}
 
-    where :math:`\\rho(x_{i},x_{j})` is the Euclidean distance (or other
+    where :math:`\rho(x_{i},x_{j})` is the Euclidean distance (or other
     distance metric, as appropriate) between patients :math:`x_{i}` and
     :math:`x_{j}`. The value for :math:`\\sigma` is calculated as:
 
     .. math::
 
-       \\sigma = \\mu\\ \\frac{\\overline{\\rho}(x_{i},N_{i}) +
-                               \\overline{\\rho}(x_{j},N_{j}) +
-                               \\rho(x_{i},x_{j})}
-                              {3}
+       \sigma = \mu\ \frac{\overline{\rho}(x_{i},N_{i}) +
+                           \overline{\rho}(x_{j},N_{j}) +
+                           \rho(x_{i},x_{j})}
+                          {3}
 
-    where :math:`\\overline{\\rho}(x_{i},N_{i})` represents the average value
+    where :math:`\overline{\rho}(x_{i},N_{i})` represents the average value
     of distances between :math:`x_{i}` and its neighbors :math:`N_{1..K}`,
-    and :math:`\\mu\\in(0, 1)\\subset\\mathbb{R}`.
+    and :math:`\mu\in(0, 1)\subset\mathbb{R}`.
 
     Examples
     --------
@@ -274,12 +274,12 @@ def SNF(*aff, K=20, t=20, alpha=1.0):
 
     .. math::
 
-       \\mathbf{P}(i,j) =
-         \\left\{\\begin{array}{rr}
-           \\frac{\\mathbf{W}_(i,j)}
-                 {2 \\sum_{k\\neq i}^{} \\mathbf{W}_(i,k)} ,& j \\neq i \\\\
+       \mathbf{P}(i,j) =
+         \left\{\begin{array}{rr}
+           \frac{\mathbf{W}_(i,j)}
+                 {2 \sum_{k\neq i}^{} \mathbf{W}_(i,k)} ,& j \neq i \\
                                                        1/2 ,& j = i
-         \\end{array}\\right.
+         \end{array}\right.
 
     Under the assumption that local similarities are more important than
     distant ones, a more sparse weight matrix is calculated based on a KNN
@@ -287,14 +287,14 @@ def SNF(*aff, K=20, t=20, alpha=1.0):
 
     .. math::
 
-       \\mathbf{S}(i,j) =
-         \\left\{\\begin{array}{rr}
-           \\frac{\\mathbf{W}_(i,j)}
-                 {\\sum_{k\\in N_{i}}^{}\\mathbf{W}_(i,k)} ,& j \\in N_{i} \\\\
-                                                         0 ,& \\text{otherwise}
-         \\end{array}\\right.
+       \mathbf{S}(i,j) =
+         \left\{\begin{array}{rr}
+           \frac{\mathbf{W}_(i,j)}
+                 {\sum_{k\in N_{i}}^{}\mathbf{W}_(i,k)} ,& j \in N_{i} \\
+                                                         0 ,& \text{otherwise}
+         \end{array}\right.
 
-    The two weight matrices :math:`\\mathbf{P}` and :math:`\\mathbf{S}` thus
+    The two weight matrices :math:`\mathbf{P}` and :math:`\mathbf{S}` thus
     provide information about a given patient's similarity to all other
     patients and the `K` most similar patients, respectively.
 
@@ -303,16 +303,16 @@ def SNF(*aff, K=20, t=20, alpha=1.0):
 
     .. math::
 
-       \\mathbf{P}^{(v)} = \\mathbf{S}^{(v)}
-                           \\times
-                           \\frac{\\sum_{k\\neq v}^{}\\mathbf{P}^{(k)}}{m-1}
-                           \\times
-                           (\\mathbf{S}^{(v)})^{T},
-                           v = 1, 2, ..., m
+       \mathbf{P}^{(v)} = \mathbf{S}^{(v)}
+                          \times
+                          \frac{\sum_{k\neq v}^{}\mathbf{P}^{(k)}}{m-1}
+                          \times
+                          (\mathbf{S}^{(v)})^{T},
+                          v = 1, 2, ..., m
 
     After each iteration, the resultant matrices are normalized via the
     equation above. Fusion stops after `t` iterations, or when the matrices
-    :math:`\\mathbf{P}^{(v)}, v = 1, 2, ..., m` converge.
+    :math:`\mathbf{P}^{(v)}, v = 1, 2, ..., m` converge.
 
     The output fused matrix is full rank and can be subjected to clustering and
     classification.
