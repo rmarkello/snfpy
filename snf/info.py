@@ -30,9 +30,6 @@ EXTRAS_REQUIRE = {
         'sphinx>=1.2',
         'sphinx_rtd_theme',
     ],
-    'numba': [
-        'numba',
-    ],
     'tests': TESTS_REQUIRE
 }
 

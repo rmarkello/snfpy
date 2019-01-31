@@ -8,16 +8,25 @@ python:
   - 3.6
 
 env:
-  - LINTING=1
-  - NUMBA=0 COVERAGE=1
-  - NUMBA=1
-  - DOCTEST=1
+  global:
+    - OPENBLAS_NUM_THREADS=1
+    - MKL_NUM_THREADS=1
+    - COVERAGE=0
+  matrix:
+    - LINTING=1
+    - DOCTEST=1
 
 matrix:
   include:
+  - python: 3.6
+    env:
+      - COVERAGE=1
   - python: 3.7
     dist: xenial
-    sudo: required
+  - python: 3.7
+    dist: xenial
+    env:
+      - DOCTEST=1
 
 before_install:
   - python -m pip install --upgrade pip
@@ -29,9 +38,7 @@ before_install:
     fi
 
 install:
-  - if [ "${NUMBA}" == "1" ]; then
-        pip install -e .[numba,tests];
-    elif [ "${DOCTEST}" == "1" ]; then
+  - if [ "${DOCTEST}" == "1" ]; then
         pip install -e .[doc,tests];
     else
         pip install -e .[tests];

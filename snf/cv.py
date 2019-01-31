@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Code for implementing cross-validation of Similarity Network Fusion.
+Code for implementing cross-validation of similarity network fusion. Useful for
+determining the "optimal" number of clusters in a dataset within a
+cross-validated, data-driven framework.
 """
 
 import numpy as np
@@ -9,13 +11,6 @@ from sklearn.model_selection import KFold, ParameterGrid
 from sklearn.utils.extmath import cartesian
 from sklearn.utils.validation import check_random_state
 from . import compute, metrics
-
-try:
-    from numba import njit, prange
-    use_numba = True
-except ImportError:
-    prange = range
-    use_numba = False
 
 
 def compute_SNF(*data, metric='sqeuclidean', K=20, mu=1, n_clusters=None,
@@ -400,8 +395,8 @@ def zrand_partitions(communities):
     n_partitions = communities.shape[-1]
     all_zrand = np.zeros(int(n_partitions * (n_partitions - 1) / 2))
 
-    for c1 in prange(n_partitions):
-        for c2 in prange(c1 + 1, n_partitions):
+    for c1 in range(n_partitions):
+        for c2 in range(c1 + 1, n_partitions):
             idx = int((c1 * n_partitions) + c2 - ((c1 + 1) * (c1 + 2) // 2))
             all_zrand[idx] = zrand(communities[:, c1], communities[:, c2])
 
@@ -440,9 +435,3 @@ def zrand_convolve(labelgrid, neighbors='edges'):
         zrand[x, y] = zrand_partitions(labelgrid[ninds].T)
 
     return zrand[..., 0], zrand[..., 1]
-
-
-if use_numba:
-    _dummyvar = njit(_dummyvar)
-    zrand = njit(zrand)
-    zrand_partitions = njit(zrand_partitions, parallel=True)
