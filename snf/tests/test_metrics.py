@@ -19,7 +19,7 @@ def test_nmi():
 
 def test_rank_feature_by_nmi():
     aff = compute.make_affinity(data1, data2)
-    out = compute.SNF(*aff)
+    out = compute.snf(*aff)
     inp = [(data, 'sqeuclidean') for data in [data1, data2]]
     metrics.rank_feature_by_nmi(inp, out)
 

@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Code for implementing Similarity Network Fusion.
-
-.. testsetup::
-
-    from snf.metrics import nmi
+Various metrics for interpreting the outputs of similarity network fusion
 """
 
 import numpy as np
 from sklearn.cluster import spectral_clustering
 from sklearn.metrics import normalized_mutual_info_score
 from sklearn.utils.validation import check_random_state
-from snf import compute
+from . import compute
 
 
 def nmi(labels):
@@ -33,9 +29,11 @@ def nmi(labels):
 
     Examples
     --------
+    >>> from snf import metrics
+
     >>> label1 = np.array([1, 1, 1, 2, 2, 2])
     >>> label2 = np.array([1, 1, 2, 2, 2, 2])
-    >>> nmi([label1, label2])
+    >>> metrics.nmi([label1, label2])
     array([[1.        , 0.47913877],
            [0.47913877, 1.        ]])
     """
