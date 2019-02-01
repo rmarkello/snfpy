@@ -29,17 +29,22 @@ def _load_data(dset, dfiles):
     """
 
     dpath = _res_path.format(resource=dset)
-    if not op.isdir(dpath):
-        raise ValueError('{} is not a valid dataset. `dset` must be one of '
-                         '["sim", "digits"]'.format(dset))
 
+    if not op.isdir(dpath):  # should never happen
+        raise ValueError('{} is not a valid dataset. If you are receiving '
+                         'this error after using snf.datasets.load_simdata() '
+                         'or snf.datasets.load_digits() it is possible that '
+                         'snfpy was improperly installed. Please check your '
+                         'installation and try again.'.format(dset))
+
+    # space versus comma-delimited files (ugh)
     try:
         data = [np.loadtxt(op.join(dpath, fn)) for fn in dfiles]
     except ValueError:
         data = [np.loadtxt(op.join(dpath, fn), delimiter=',') for fn in dfiles]
-    label = np.loadtxt(op.join(dpath, 'label.csv'))
 
-    return Bunch(data=data, labels=label)
+    return Bunch(data=data,
+                 labels=np.loadtxt(op.join(dpath, 'label.csv')))
 
 
 def load_simdata():

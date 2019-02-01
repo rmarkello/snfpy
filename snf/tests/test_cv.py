@@ -1,46 +1,31 @@
 # -*- coding: utf-8 -*-
 
-import os.path as op
-import pkg_resources
 import numpy as np
 import pytest
 from snf import cv
 
 rs = np.random.RandomState(1234)
-test_dir = pkg_resources.resource_filename('snf', 'tests/data/sim')
-data1 = np.loadtxt(op.join(test_dir, 'data1.csv'))
-data2 = np.loadtxt(op.join(test_dir, 'data2.csv'))
-neighbors = {
-    (0, 0): dict(edge=np.array([0, 4, 1]),
-                 corners=np.array([0, 4, 1, 5])),
-    (1, 2): dict(edge=np.array([5, 2, 6, 10, 7]),
-                 corners=np.array([1, 5, 9, 2, 6, 10, 3, 7, 11])),
-    (2, 1): dict(edge=np.array([8, 5, 9, 13, 10]),
-                 corners=np.array([4, 8, 12, 5, 9, 13, 6, 10, 14])),
-    (3, 3): dict(edge=np.array([14, 11, 15]),
-                 corners=np.array([10, 14, 11, 15]))
-}
 
 
-def test_compute_SNF():
+def test_compute_SNF(simdata):
     # don't define cluster number (find using compute.get_n_clusters)
-    zaff, labels = cv.compute_SNF(data1, data2, metric='euclidean',
+    zaff, labels = cv.compute_SNF(simdata.data, metric='euclidean',
                                   n_perms=100)
     # define cluster number
-    zaff, labels = cv.compute_SNF(data1, data2, metric='euclidean',
+    zaff, labels = cv.compute_SNF(simdata.data, metric='euclidean',
                                   n_clusters=3, n_perms=100)
     assert np.unique(labels).size == 3
     # provide list of cluster numbers
-    zaff, labels = cv.compute_SNF(data1, data2, metric='euclidean',
+    zaff, labels = cv.compute_SNF(simdata.data, metric='euclidean',
                                   n_clusters=[3, 4], n_perms=100)
     assert isinstance(labels, list)
     for n, f in enumerate(labels, 3):
         assert np.unique(f).size == n
 
 
-def test_snf_gridsearch():
+def test_snf_gridsearch(simdata):
     # only a few parameters to test
-    zaff, labels = cv.snf_gridsearch(data1, data2, metric='euclidean',
+    zaff, labels = cv.snf_gridsearch(simdata.data, metric='euclidean',
                                      mu=[0.35, 0.85], K=[10, 20],
                                      n_clusters=[2, 3], n_perms=100, seed=1234)
     # get optimal parameters based on diff corners
@@ -48,14 +33,17 @@ def test_snf_gridsearch():
         mu, K = cv.get_optimal_params(zaff, labels, neighbors=neighbors)
 
 
-def test_neighbors():
+@pytest.mark.parametrize('x, y, edges, corners', [
+    (0, 0, [0, 4, 1], [0, 4, 1, 5]),
+    (1, 2, [5, 2, 6, 10, 7], [1, 5, 9, 2, 6, 10, 3, 7, 11]),
+    (2, 1, [8, 5, 9, 13, 10], [4, 8, 12, 5, 9, 13, 6, 10, 14]),
+    (3, 3, [14, 11, 15], [10, 14, 11, 15])
+])
+def test_neighbors(x, y, edges, corners):
     X = np.arange(4**2).reshape(4, 4)
 
-    for (x, y), out in neighbors.items():
-        assert np.allclose(out['edge'],
-                           X[cv.get_neighbors(x, y, 'edges', X.shape)])
-        assert np.allclose(out['corners'],
-                           X[cv.get_neighbors(x, y, 'corners', X.shape)])
+    assert np.allclose(edges, X[cv.get_neighbors(x, y, 'edges', X.shape)])
+    assert np.allclose(corners, X[cv.get_neighbors(x, y, 'corners', X.shape)])
 
     with pytest.raises(ValueError):
         cv.get_neighbors(x, y, 'badneighbors')
