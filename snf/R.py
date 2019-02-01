@@ -8,7 +8,6 @@ from . import compute as _compute, metrics as _metrics
 affinityMatrix = _compute.affinity_matrix
 calNMI = _metrics.normalized_mutual_info_score
 concordanceNetworkMNI = _metrics.nmi
-dist2 = _compute.dist2
 estimateNumberOfClustersGivenGraph = _compute.get_n_clusters
 rankFeaturesByNMI = _metrics.rank_feature_by_nmi
 SNF = _compute.snf
