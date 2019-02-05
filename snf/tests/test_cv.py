@@ -25,7 +25,7 @@ def test_compute_SNF(simdata):
 
 def test_snf_gridsearch(simdata):
     # only a few parameters to test
-    zaff, labels = cv.snf_gridsearch(simdata.data, metric='euclidean',
+    zaff, labels = cv.snf_gridsearch(*simdata.data, metric='euclidean',
                                      mu=[0.35, 0.85], K=[10, 20],
                                      n_clusters=[2, 3], n_perms=100, seed=1234)
     # get optimal parameters based on diff corners
