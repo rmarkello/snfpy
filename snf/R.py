@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+Aliases for easier compatibility with the SNF toolbox written in R
+"""
 
-from snf import compute, metrics
-from sklearn.cluster import spectral_clustering
+from . import compute as _compute, metrics as _metrics
 
-affinityMatrix = compute.affinity_matrix
-calNMI = metrics.normalized_mutual_info_score
-concordanceNetworkMNI = metrics.nmi
-dist2 = compute.dist2
-estimateNumberOfClustersGivenGraph = compute.get_n_clusters
-rankFeaturesByNMI = metrics.rank_feature_by_nmi
-SNF = compute.SNF
-spectralClustering = spectral_clustering
-standardNormalization = compute.scipy.stats.zscore
+affinityMatrix = _compute.affinity_matrix
+calNMI = _metrics.normalized_mutual_info_score
+concordanceNetworkMNI = _metrics.nmi
+estimateNumberOfClustersGivenGraph = _compute.get_n_clusters
+rankFeaturesByNMI = _metrics.rank_feature_by_nmi
+SNF = _compute.snf
+standardNormalization = _compute.scipy.stats.zscore

@@ -1,10 +1,22 @@
-__all__ = ['__version__', 'matlab', 'R', 'make_affinity', 'SNF',
-           'get_n_clusters', 'spectral_clustering', 'nmi', 'silhouette_score',
-           'affinity_zscore', 'SNF_gridsearch', 'get_optimal_params']
+__all__ = [
+    '__author__', '__description__', '__email__', '__license__',
+    '__maintainer__', '__packagename__', '__url__', '__version__',
+    'cv', 'metrics', 'make_affinity', 'snf', 'get_n_clusters'
+]
 
-from snf.info import (__version__)
-from snf import (matlab, R)
-from snf.compute import (make_affinity, SNF, get_n_clusters)
-from snf.metrics import (nmi, silhouette_score, affinity_zscore)
-from snf.cv import (SNF_gridsearch, get_optimal_params)
-from sklearn.cluster import spectral_clustering
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
+
+from .info import (
+    __author__,
+    __description__,
+    __email__,
+    __license__,
+    __maintainer__,
+    __packagename__,
+    __url__,
+)
+
+from . import (cv, metrics)
+from .compute import (make_affinity, snf, get_n_clusters)
