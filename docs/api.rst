@@ -23,7 +23,7 @@ your own workflows.
 
 .. autosummary::
    :template: function.rst
-   :toctree:  _generated/
+   :toctree:  generated/
 
    make_affinity
    get_n_clusters
@@ -43,7 +43,7 @@ your own workflows.
 
 .. autosummary::
    :template: function.rst
-   :toctree:  _generated/
+   :toctree:  generated/
 
    nmi
    rank_feature_by_nmi
@@ -63,7 +63,7 @@ your own workflows.
 
 .. autosummary::
    :template: function.rst
-   :toctree:  _generated/
+   :toctree:  generated/
 
    snf_gridsearch
    get_optimal_params
@@ -81,7 +81,7 @@ your own workflows.
 
 .. autosummary::
    :template: function.rst
-   :toctree:  _generated/
+   :toctree:  generated/
 
    load_simdata
    load_digits
