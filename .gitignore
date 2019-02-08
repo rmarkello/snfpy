@@ -1,5 +1,5 @@
 .vscode/
-docs/_generated/
+docs/generated/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

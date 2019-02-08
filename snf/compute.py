@@ -73,12 +73,14 @@ def _check_data_metric(data, metric):
 
 
 def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
-    """
+    r"""
     Constructs affinity (i.e., similarity) matrix from `data`
 
     Performs columnwise normalization on `data`, computes distance matrix based
-    on provided `metric`, and then constructs affinity matrix by calling
-    `affinity_matrix()`
+    on provided `metric`, and then constructs affinity matrix. Uses a scaled
+    exponential similarity kernel to determine the weight of each edge based on
+    the distance matrix. Optional hyperparameters `K` and `mu` determine the
+    extent of the scaling (see `Notes`).
 
     Parameters
     ----------
@@ -106,6 +108,31 @@ def make_affinity(*data, metric='sqeuclidean', K=20, mu=0.5, normalize=True):
     -------
     affinity : (N, N) numpy.ndarray or list of numpy.ndarray
         Affinity matrix (or matrices, if multiple inputs provided)
+
+    Notes
+    -----
+    The scaled exponential similarity kernel, based on the probability density
+    function of the normal distribution, takes the form:
+
+    .. math::
+
+       \mathbf{W}(i, j) = \frac{1}{\sqrt{2\pi\sigma^2}}
+                          \ exp^{-\frac{\rho^2(x_{i},x_{j})}{2\sigma^2}}
+
+    where :math:`\rho(x_{i},x_{j})` is the Euclidean distance (or other
+    distance metric, as appropriate) between patients :math:`x_{i}` and
+    :math:`x_{j}`. The value for :math:`\\sigma` is calculated as:
+
+    .. math::
+
+       \sigma = \mu\ \frac{\overline{\rho}(x_{i},N_{i}) +
+                           \overline{\rho}(x_{j},N_{j}) +
+                           \rho(x_{i},x_{j})}
+                          {3}
+
+    where :math:`\overline{\rho}(x_{i},N_{i})` represents the average value
+    of distances between :math:`x_{i}` and its neighbors :math:`N_{1..K}`,
+    and :math:`\mu\in(0, 1)\subset\mathbb{R}`.
 
     Examples
     --------
