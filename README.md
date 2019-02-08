@@ -38,7 +38,7 @@ pip install snfpy
 ## Purpose
 
 Similarity network fusion is a technique originally proposed by [Wang et al., 2014, Nature Methods](https://www.ncbi.nlm.nih.gov/pubmed/24464287) to combine data from different sources for a shared group of samples.
-The procedure works by constructing networks of these samples for each data source that represent how *similar* each sample is to all the other, and then fusing the networks together.
+The procedure works by constructing networks of these samples for each data source that represent how *similar* each sample is to all the others, and then fusing the networks together.
 This figure from the original paper, which applied the method to genetics data, provides a nice demonstration:
 
 ![Similarity network fusion](https://media.nature.com/lw926/nature-assets/nmeth/journal/v11/n3/images/nmeth.2810-F1.jpg)
@@ -103,7 +103,7 @@ Once we have our similarity networks we can fuse them together with SNF:
 ```
 
 The fused network is then ready for other analyses (like clustering!).
-If we want to cluster the nextwork we can try and determine the "optimal" number of clusters to form using `snf.get_n_clusters()`.
+If we want to cluster the network we can try and determine the "optimal" number of clusters to form using `snf.get_n_clusters()`.
 This functions returns the top _two_ "optimal" number of clusters (estimated via an eigengap approach):
 
 ```python
