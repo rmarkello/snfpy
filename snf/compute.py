@@ -7,7 +7,6 @@ workflows.
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy import sparse, stats
-from sklearn import decomposition
 from sklearn.utils.validation import (check_array, check_symmetric,
                                       check_consistent_length)
 
@@ -427,7 +426,7 @@ def snf(*aff, K=20, t=20, alpha=1.0):
 
     # normalize fused matrix and update diagonal similarity
     W = W / np.nansum(W, axis=1, keepdims=True)  # TODO: / by NaN
-    W = _B0_normalized(W, alpha=0.5)
+    W = (W + W.T + np.eye(len(W))) / 2
 
     return W
 
@@ -611,19 +610,26 @@ def get_n_clusters(arr, n_clusters=range(2, 6)):
         Optimal number of clusters
     second_opt_cluster : int
         Second best number of clusters
-
-    Examples
-    --------
-    >>> np.random.seed(1234)
-    >>> data = np.random.rand(100, 100)
-    >>> get_n_clusters(data)
-    (2, 4)
     """
 
+    # confirm inputs are appropriate
     n_clusters = check_array(n_clusters, ensure_2d=False)
-    eigenvalue = decomposition.PCA().fit(arr).singular_values_[:-1]
-    eigengap = np.abs(np.diff(eigenvalue))
-    eigengap = eigengap * (1 - eigenvalue[:-1]) / (1 - eigenvalue[1:])
+    n_clusters = n_clusters[n_clusters > 1]
+
+    # don't overwrite provided array!
+    graph = arr.copy()
+
+    graph = (graph + graph.T) / 2
+    graph[np.diag_indices_from(graph)] = 0
+    degree = graph.sum(axis=1)
+    degree[np.isclose(degree, 0)] += np.spacing(1)
+    di = np.diag(1 / np.sqrt(degree))
+    laplacian = di @ (np.diag(degree) - graph) @ di
+
+    # perform eigendecomposition and find eigengap
+    eigs = np.sort(np.linalg.eig(laplacian)[0])
+    eigengap = np.abs(np.diff(eigs))
+    eigengap = eigengap * (1 - eigs[:-1]) / (1 - eigs[1:])
     n = eigengap[n_clusters - 1].argsort()[::-1]
 
-    return n_clusters[n[0]], n_clusters[n[1]]
+    return n_clusters[n[:2]]
