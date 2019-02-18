@@ -30,13 +30,14 @@ def nmi(labels):
 
     Examples
     --------
-    >>> from snf import metrics
-
+    >>> import numpy as np
     >>> label1 = np.array([1, 1, 1, 2, 2, 2])
     >>> label2 = np.array([1, 1, 2, 2, 2, 2])
+
+    >>> from snf import metrics
     >>> metrics.nmi([label1, label2])
-    array([[1.        , 0.47913877],
-           [0.47913877, 1.        ]])
+    array([[1.        , 0.47870397],
+           [0.47870397, 1.        ]])
     """
 
     # create empty array for output
