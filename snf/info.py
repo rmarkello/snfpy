@@ -38,7 +38,10 @@ EXTRAS_REQUIRE['all'] = list(set([
 ]))
 
 PACKAGE_DATA = {
-    'snfpy': ['tests/data/*']
+    'snf': [
+        'tests/data/digits/*csv',
+        'tests/data/sim/*csv'
+    ]
 }
 
 CLASSIFIERS = [
