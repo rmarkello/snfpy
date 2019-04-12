@@ -6,6 +6,7 @@ cross-validated, data-driven framework.
 """
 
 import numpy as np
+from scipy.spatial.distance import cdist
 from sklearn.cluster import spectral_clustering
 from sklearn.model_selection import KFold, ParameterGrid
 from sklearn.utils.extmath import cartesian
@@ -62,12 +63,17 @@ def compute_SNF(*data, metric='sqeuclidean', K=20, mu=1, n_clusters=None,
     elif isinstance(n_clusters, int):
         n_clusters = [n_clusters]
 
-    # perform spectral clustering across all `n_clusters` and get z-affinity
-    snf_labels = [spectral_clustering(snf_aff, clust) for clust in n_clusters]
-    z_affinity = [metrics.affinity_zscore(snf_aff, label, n_perms, seed=rs)
-                  for label in snf_labels]
+    # perform spectral clustering across all `n_clusters`
+    snf_labels = [spectral_clustering(snf_aff, clust, random_state=rs)
+                  for clust in n_clusters]
 
-    return z_affinity, snf_labels
+    # get z-affinity as desired
+    if n_perms is not None and n_perms > 0:
+        z_affinity = [metrics.affinity_zscore(snf_aff, label, n_perms, seed=rs)
+                      for label in snf_labels]
+        return z_affinity, snf_labels
+
+    return snf_labels
 
 
 def snf_gridsearch(*data, metric='sqeuclidean', mu=None, K=None,
@@ -208,47 +214,42 @@ def get_optimal_params(zaff, labels, neighbors='edges'):
     return mu, K
 
 
-def get_neighbors(x, y, neighbors='edges', shape=None):
+def get_neighbors(ijk, shape, neighbors='faces'):
     """
-    Returns indices of corner AND edge neighbors of `x` and `y`
+    Returns indices of neighbors to `ijk` in array of shape `shape`
 
     Parameters
     ----------
-    x, y : int
-        Indices of coordinates
+    ijk : array_like
+        Indices of coordinates of interest
+    shape : tuple
+        Tuple indicating shape of array from which `ijk` is drawn
     neighbors : str, optional
-        One of ['edges', 'corners']. Default: 'edges'
-    shape : tuple, optional
-        Tuple of array that neighbors will be indexing. Providing will ensure
-        outputs do not induce out-of-bounds errors. Default: None
+        One of ['faces', 'edges', 'corners']. Default: 'faces'
 
     Returns
     -------
-    inds : list
-        x- and y-indices of edge/corner neighbors (includes input coordinates)
+    inds : tuple of tuples
+        Indices of neighbors to `ijk` (includes input coordinates)
     """
 
-    # make mesh grid
-    xinds, yinds = np.meshgrid(np.arange(x - 1, x + 2),
-                               np.arange(y - 1, y + 2))
+    neigh = ['faces', 'edges', 'corners']
+    if neighbors not in neigh:
+        raise ValueError('Provided neighbors {} not valid. Must be one of {}.'
+                         .format(neighbors, neigh))
 
-    # extract neighbors, as appropriate
-    if neighbors == 'edges':
-        middle = ((0, 1, 1, 1, 2), (1, 0, 1, 2, 1))
-        xinds, yinds = xinds[middle], yinds[middle]
-    elif neighbors == 'corners':
-        xinds, yinds = xinds.flatten(), yinds.flatten()
-    else:
-        raise ValueError('Provided neighbors value "{}" not in '
-                         '[\'edges\', \'corners\']'.format(neighbors))
+    ijk = np.asarray(ijk)
+    if ijk.ndim != 2:
+        ijk = ijk[np.newaxis]
+    if ijk.shape[-1] != len(shape):
+        raise ValueError('Provided coordinate {} needs to have same '
+                         'dimensions as provided shape {}'.format(ijk, shape))
 
-    # ensure we won't have any out-of-bounds errors (<0, >shape if provided)
-    keep = np.logical_and(xinds >= 0, yinds >= 0)
-    if shape is not None:
-        keep = np.logical_and(keep, np.logical_and(xinds < shape[0],
-                                                   yinds < shape[1]))
+    dist = np.sqrt(neigh.index(neighbors) + 1)
+    xyz = cartesian([range(i) for i in shape])
+    inds = tuple(map(tuple, xyz[np.ravel(cdist(ijk, xyz) <= dist)].T))
 
-    return xinds[keep], yinds[keep]
+    return inds
 
 
 def extract_max_inds(grid, axis=-1):
@@ -428,10 +429,11 @@ def zrand_convolve(labelgrid, neighbors='edges'):
         Array containing standard deviation of the z-Rand index
     """
 
-    inds = cartesian([range(labelgrid.shape[0]), range(labelgrid.shape[1])])
-    zrand = np.empty(shape=labelgrid.shape[:-1] + (2,))
-    for x, y in inds:
-        ninds = get_neighbors(x, y, neighbors=neighbors, shape=labelgrid.shape)
-        zrand[x, y] = zrand_partitions(labelgrid[ninds].T)
+    shape = labelgrid.shape[:-1]
+    inds = cartesian([range(i) for i in shape])
+    zr = np.empty(shape=shape + (2,))
+    for ijk in inds:
+        ninds = get_neighbors(ijk, shape=shape, neighbors=neighbors)
+        zr[tuple(ijk)] = zrand_partitions(labelgrid[ninds].T)
 
-    return zrand[..., 0], zrand[..., 1]
+    return zr[..., 0], zr[..., 1]
