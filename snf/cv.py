@@ -404,7 +404,7 @@ def zrand_partitions(communities):
     return np.nanmean(all_zrand), np.nanstd(all_zrand)
 
 
-def zrand_convolve(labelgrid, neighbors='edges'):
+def zrand_convolve(labelgrid, neighbors='edges', return_std=False):
     """
     Calculates the avg and std z-Rand index using kernel over `labelgrid`
 
@@ -419,6 +419,8 @@ def zrand_convolve(labelgrid, neighbors='edges'):
     neighbors : str, optional
         How many neighbors to consider when calculating Z-rand kernel. Must be
         in ['edges', 'corners']. Default: 'edges'
+    return_std : bool, optional
+        Whether to return `zrand_std` in addition to `zrand_avg`. Default: True
 
     Returns
     -------
@@ -436,4 +438,7 @@ def zrand_convolve(labelgrid, neighbors='edges'):
         ninds = get_neighbors(ijk, shape=shape, neighbors=neighbors)
         zr[tuple(ijk)] = zrand_partitions(labelgrid[ninds].T)
 
-    return zr[..., 0], zr[..., 1]
+    if return_std:
+        return zr[..., 0], zr[..., 1]
+
+    return zr[..., 0]
