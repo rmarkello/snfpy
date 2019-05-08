@@ -13,6 +13,19 @@ from sklearn.utils.extmath import cartesian
 from sklearn.utils.validation import check_random_state
 from . import compute, metrics
 
+try:
+    from numba import njit, prange
+    use_numba = True
+except ImportError:
+    prange = range
+    use_numba = False
+
+try:
+    from joblib import delayed, Parallel
+    use_joblib = True
+except ImportError:
+    use_joblib = False
+
 
 def compute_SNF(*data, metric='sqeuclidean', K=20, mu=1, n_clusters=None,
                 t=20, n_perms=1000, normalize=True, seed=None):
@@ -404,7 +417,13 @@ def zrand_partitions(communities):
     return np.nanmean(all_zrand), np.nanstd(all_zrand)
 
 
-def zrand_convolve(labelgrid, neighbors='edges', return_std=False):
+if use_numba:
+    _dummyvar = njit(_dummyvar)
+    zrand = njit(zrand)
+    zrand_partitions = njit(zrand_partitions)
+
+
+def zrand_convolve(labelgrid, neighbors='edges', return_std=False, n_proc=-1):
     """
     Calculates the avg and std z-Rand index using kernel over `labelgrid`
 
@@ -431,12 +450,21 @@ def zrand_convolve(labelgrid, neighbors='edges', return_std=False):
         Array containing standard deviation of the z-Rand index
     """
 
+    def _get_zrand(ijk):
+        ninds = get_neighbors(ijk, shape=shape, neighbors=neighbors)
+        return zrand_partitions(labelgrid[ninds].T)
+
     shape = labelgrid.shape[:-1]
     inds = cartesian([range(i) for i in shape])
+
+    if use_joblib:
+        _zr = Parallel(n_jobs=n_proc)(delayed(_get_zrand)(ijk) for ijk in inds)
+    else:
+        _zr = [_get_zrand(ijk) for ijk in inds]
+
     zr = np.empty(shape=shape + (2,))
-    for ijk in inds:
-        ninds = get_neighbors(ijk, shape=shape, neighbors=neighbors)
-        zr[tuple(ijk)] = zrand_partitions(labelgrid[ninds].T)
+    for ijk, z in zip(inds, _zr):
+        zr[tuple(ijk)] = z
 
     if return_std:
         return zr[..., 0], zr[..., 1]
