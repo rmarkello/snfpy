@@ -33,20 +33,26 @@ def test_snf_gridsearch(simdata):
         mu, K = cv.get_optimal_params(zaff, labels, neighbors=neighbors)
 
 
-@pytest.mark.parametrize('x, y, edges, corners', [
-    (0, 0, [0, 4, 1], [0, 4, 1, 5]),
-    (1, 2, [5, 2, 6, 10, 7], [1, 5, 9, 2, 6, 10, 3, 7, 11]),
-    (2, 1, [8, 5, 9, 13, 10], [4, 8, 12, 5, 9, 13, 6, 10, 14]),
-    (3, 3, [14, 11, 15], [10, 14, 11, 15])
+@pytest.mark.parametrize('x, y, faces, edges', [
+    (0, 0, [0, 1, 4], [0, 1, 4, 5]),
+    (1, 2, [2, 5, 6, 7, 10], [1, 2, 3, 5, 6, 7, 9, 10, 11]),
+    (2, 1, [5, 8, 9, 10, 13], [4, 5, 6, 8, 9, 10, 12, 13, 14]),
+    (3, 3, [11, 14, 15], [10, 11, 14, 15])
 ])
-def test_neighbors(x, y, edges, corners):
-    X = np.arange(4**2).reshape(4, 4)
+def test_neighbors(x, y, faces, edges):
+    X = np.arange(4**2).reshape(4, 4).astype(int)
 
-    assert np.allclose(edges, X[cv.get_neighbors(x, y, 'edges', X.shape)])
-    assert np.allclose(corners, X[cv.get_neighbors(x, y, 'corners', X.shape)])
+    ijk = [x, y]
+    assert np.allclose(faces, X[cv.get_neighbors(ijk, X.shape, 'faces')])
+    assert np.allclose(edges, X[cv.get_neighbors(ijk, X.shape, 'edges')])
 
+    # invalid neighbor entry
     with pytest.raises(ValueError):
-        cv.get_neighbors(x, y, 'badneighbors')
+        cv.get_neighbors([x, y], X.shape, 'badneighbors')
+
+    # shape doesn't match coordinate size
+    with pytest.raises(ValueError):
+        cv.get_neighbors([x, y], (4, 4, 4), 'faces')
 
 
 def test_extract_max_inds():
