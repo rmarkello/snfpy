@@ -53,7 +53,7 @@ before_install:
 install:
   - |
     if [ "${INSTALL_TYPE}" == "setup" ]; then
-      python setup.py install;
+      python setup.py install --single-version-externally-managed --root=/;
     elif [ "${INSTALL_TYPE}" == "sdist" ]; then
       python setup.py sdist;
       pip install dist/*.tar.gz;

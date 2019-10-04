@@ -8,7 +8,7 @@ __maintainer__ = 'Ross Markello'
 __email__ = 'rossmarkello@gmail.com'
 __status__ = 'Prototype'
 __url__ = 'http://github.com/rmarkello/snfpy'
-__packagename__ = 'snf'
+__packagename__ = 'snfpy'
 __description__ = ('snfpy is a Python toolbox for performing similarity '
                    'network fusion.')
 __longdesc__ = 'README.md'
