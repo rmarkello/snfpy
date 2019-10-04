@@ -11,10 +11,12 @@ def test_compute_SNF(simdata):
     # don't define cluster number (find using compute.get_n_clusters)
     zaff, labels = cv.compute_SNF(simdata.data, metric='euclidean',
                                   n_perms=100)
+
     # define cluster number
     zaff, labels = cv.compute_SNF(simdata.data, metric='euclidean',
                                   n_clusters=3, n_perms=100)
     assert np.unique(labels).size == 3
+
     # provide list of cluster numbers
     zaff, labels = cv.compute_SNF(simdata.data, metric='euclidean',
                                   n_clusters=[3, 4], n_perms=100)
@@ -22,12 +24,16 @@ def test_compute_SNF(simdata):
     for n, f in enumerate(labels, 3):
         assert np.unique(f).size == n
 
+    # confirm that n_perm = 0 returns no z_affinity score
+    labels = cv.compute_SNF(simdata.data, n_clusters=3, n_perms=0)
+    assert np.unique(labels).size == 3
+
 
 def test_snf_gridsearch(simdata):
     # only a few parameters to test
     zaff, labels = cv.snf_gridsearch(*simdata.data, metric='euclidean',
                                      mu=[0.35, 0.85], K=[10, 20],
-                                     n_clusters=[2, 3], n_perms=100, seed=1234)
+                                     n_clusters=[2, 3], n_perms=10, seed=1234)
     # get optimal parameters based on diff corners
     for neighbors in ['edges', 'corners']:
         mu, K = cv.get_optimal_params(zaff, labels, neighbors=neighbors)
@@ -79,6 +85,9 @@ def test_zrand():
     assert cv.zrand(X, Y) == cv.zrand(X, Y[::-1])
     assert cv.zrand(X, Y) > cv.zrand(X, rs.choice([0, 1], size=X.shape))
     assert cv.zrand(X, Y) == cv.zrand(X[:, 0], Y[:, 0])
+
+    with pytest.raises(ValueError):
+        cv.zrand(np.column_stack([X, X]), Y)
 
 
 def test_zrand_partitions():
