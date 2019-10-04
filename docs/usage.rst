@@ -18,8 +18,8 @@ A brief example for those who just want to get started:
     # load raw data / labels for supplied dataset
     >>> from snf import datasets
     >>> simdata = datasets.load_simdata()
-    >>> simdata.keys()
-    dict_keys(['data', 'labels'])
+    >>> sorted(simdata.keys())
+    ['data', 'labels']
 
     # this dataset has two data arrays representing features from 200 samples
     >>> len(simdata.data)
@@ -77,8 +77,8 @@ samples and `M` are features.
 
     >>> from snf import datasets
     >>> simdata = datasets.load_simdata()
-    >>> simdata.keys()
-    dict_keys(['data', 'labels'])
+    >>> sorted(simdata.keys())
+    ['data', 'labels']
 
 The loaded object ``simdata`` is a dictionary with two keys containing our data
 arrays and the corresponding labels:
@@ -188,8 +188,8 @@ cluster goodness-of-fit.
 
     >>> import numpy as np
     >>> np.fill_diagonal(fused, 0)
-    >>> silhouette = metrics.silhouette_score(fused, fused_labels)
-    >>> print(f"Silhouette score for the fused matrix is: {silhouette:.2f}")
+    >>> sil = metrics.silhouette_score(fused, fused_labels)
+    >>> print('Silhouette score for the fused matrix is: {:.2f}'.format(sil))
     Silhouette score for the fused matrix is: 0.28
 
 This indicates that the clustering solution for the data is not too bad! We

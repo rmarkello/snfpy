@@ -143,7 +143,9 @@ def _silhouette_samples(arr, labels):
             raise ValueError("Number of labels is %d. Valid values are 2 "
                              "to n_samples - 1 (inclusive)" % n_labels)
 
-    arr, labels = check_X_y(arr, labels, accept_sparse=['csc', 'csr'])
+    arr, labels = check_X_y(arr, labels, accept_sparse=['csc', 'csr'],
+                            copy=True)
+    arr[np.diag_indices_from(arr)] = 0
     le = LabelEncoder()
     labels = le.fit_transform(labels)
     check_number_of_labels(len(le.classes_), arr.shape[0])

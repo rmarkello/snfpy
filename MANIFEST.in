@@ -1,4 +1,4 @@
-include README.md requirements.txt LICENSE COPYING.LESSER
-
+include README.md setup* MANIFEST.in requirements.txt LICENSE COPYING.LESSER
+recursive-include snf/tests/data *
 include versioneer.py
 include snf/_version.py
