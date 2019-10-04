@@ -457,7 +457,7 @@ def _check_SNF_inputs(aff):
 
 def _label_prop(W, Y, *, t=1000):
     """
-    Label propogation of labels in `Y` via similarity of `W`
+    Label propagation of labels in `Y` via similarity of `W`
 
     Parameters
     ----------
@@ -467,7 +467,7 @@ def _label_prop(W, Y, *, t=1000):
         Dummy-coded array grouping N subjects in G groups. Some subjects should
         have no group indicated
     t : int, optional
-        Number of iterations to perform label propogation. Default: 1000
+        Number of iterations to perform label propagation. Default: 1000
 
     Returns
     -------
@@ -523,7 +523,7 @@ def _dnorm(W, norm='ave'):
 
 def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     """
-    Propogates `labels` from `train` data to `test` data via SNF
+    Propagates `labels` from `train` data to `test` data via SNF
 
     Parameters
     ----------
@@ -533,7 +533,7 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     test : `m`-list of (S2, F) array_like
         Input subject x feature testing data. These should be similar to the
         data in `train` (though the first dimension can differ). Labels will be
-        propogated to these subjects.
+        propagated to these subjects.
     labels : (S1,) array_like
         Cluster labels for `S1` subjects in `train` data sets. These could have
         been obtained from some ground-truth labelling or via a previous
@@ -586,9 +586,9 @@ def group_predict(train, test, labels, *, K=20, mu=0.4, t=20):
     for i in range(groups.size):
         all_labels[np.where(labels == groups[i])[0], i] = 1
 
-    # propogate labels from train data to test data using SNF fused array
-    propogated_labels = _label_prop(fused_aff, all_labels, t=1000)
-    predicted_labels = groups[propogated_labels[len(test[0]):].argmax(axis=1)]
+    # propagate labels from train data to test data using SNF fused array
+    propagated_labels = _label_prop(fused_aff, all_labels, t=1000)
+    predicted_labels = groups[propagated_labels[len(train[0]):].argmax(axis=1)]
 
     return predicted_labels
 
