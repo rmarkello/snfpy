@@ -11,4 +11,4 @@ concordanceNetworkMNI = _metrics.nmi
 estimateNumberOfClustersGivenGraph = _compute.get_n_clusters
 rankFeaturesByNMI = _metrics.rank_feature_by_nmi
 SNF = _compute.snf
-standardNormalization = _compute.scipy.stats.zscore
+standardNormalization = _compute.stats.zscore

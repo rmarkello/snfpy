@@ -12,4 +12,4 @@ Concordance_Network_NMI = _metrics.nmi
 Estimate_Number_of_Clusters_given_graph = _compute.get_n_clusters
 FindDominateSet = _compute._find_dominate_set
 SNF = _compute.snf
-Standard_Normalization = _compute.scipy.stats.zscore
+Standard_Normalization = _compute.stats.zscore
