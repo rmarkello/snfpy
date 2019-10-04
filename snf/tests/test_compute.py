@@ -84,9 +84,9 @@ def test_get_n_clusters(affinity):
 
 def test_group_predict(simdata):
     # split train/test and labels and run group prediction
-    train = [d[::2] for d in simdata.data]
-    test = [d[1::2] for d in simdata.data]
-    train_lab = simdata.labels[::2]
+    train = [d[:150] for d in simdata.data]
+    test = [d[150:] for d in simdata.data]
+    train_lab = simdata.labels[:150]
     test_lab = compute.group_predict(train, test, train_lab)
 
     # test labels same length as test data
