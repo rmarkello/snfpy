@@ -188,8 +188,8 @@ cluster goodness-of-fit.
 
     >>> import numpy as np
     >>> np.fill_diagonal(fused, 0)
-    >>> silhouette = metrics.silhouette_score(fused, fused_labels)
-    >>> print(f"Silhouette score for the fused matrix is: {silhouette:.2f}")
+    >>> sil = metrics.silhouette_score(fused, fused_labels)
+    >>> print('Silhouette score for the fused matrix is: {:.2f}'.format(sil))
     Silhouette score for the fused matrix is: 0.28
 
 This indicates that the clustering solution for the data is not too bad! We
